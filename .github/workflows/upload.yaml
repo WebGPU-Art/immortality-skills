@@ -42,6 +42,8 @@ jobs:
           echo "prefix=${asset_prefix}" >> "$GITHUB_OUTPUT"
           echo "base-url=https://cos-sh.tiye.me/${asset_prefix}" >> "$GITHUB_OUTPUT"
       - name: Build page
+        env:
+          AUDIO_BASE: ${{ github.event_name == 'pull_request' && 'audio/' || format('{0}audio/', steps.asset-path.outputs.base-url) }}
         run: |
           set -euo pipefail
           node scripts/build.mjs
@@ -88,7 +90,7 @@ jobs:
           DEPLOY_KEY: ${{ secrets.rsync_private_key }}
         with:
           flags: '-avzr --progress'
-          options: ''
+          options: '--exclude=audio/'
           ssh_options: ''
           src: 'dist/*'
           dest: 'rsync-user@tiye.me:/web-assets/repo/${{ github.repository }}'

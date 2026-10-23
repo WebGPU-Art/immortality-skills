@@ -61,7 +61,7 @@ node tools/record.mjs              # 从头开始；node tools/record.mjs s_hopf
 
 ## 部署
 
-`.github/workflows/upload.yaml`：推送到 `main` 时构建 `dist/`，上传到腾讯云 COS（`ap-shanghai`，路径 `cos-sh.tiye.me/<仓库名>/`），并 rsync 到服务器；PR 只构建并保留 3 天的产物。需要在仓库 Secrets 中配置：
+`.github/workflows/upload.yaml`：推送到 `main` 时构建 `dist/`，上传到腾讯云 COS（`ap-shanghai`，路径 `cos-sh.tiye.me/<仓库名>/`），并 rsync 到服务器（配音文件不同步到服务器，页面直接从 COS 加载配音）；PR 只构建并保留 3 天的产物。需要在仓库 Secrets 中配置：
 
 - `COS_BUCKET`、`COS_SECRET_ID`、`COS_SECRET_KEY`
 - `rsync_private_key`

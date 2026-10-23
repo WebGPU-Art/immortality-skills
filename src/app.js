@@ -189,7 +189,7 @@ const Recorder = (() => {
   PAGES.push({ id: 'close', kind: 'close', realm: 'tiandao' });
   const narr = id => (NARR[id] || '');
   const estDur = id => Math.max(3, narr(id).length / 3.6);  // 没有配音时按语速估计
-  const audioOf = id => AUDIO[id] ? { src: 'audio/' + AUDIO[id].f, dur: AUDIO[id].d } : null;
+  const audioOf = id => AUDIO[id] ? { src: AUDIO_BASE + AUDIO[id].f, dur: AUDIO[id].d } : null;
   let on = false, pi = 0, inst = null, tt = 0, phase = 'idle', phaseT = 0, au = null, dur = 0, enterAt = 0, cues = [], nextAu = null, endHold = 0;
 
   function splitCues(text) {

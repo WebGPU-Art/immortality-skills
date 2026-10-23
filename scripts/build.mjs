@@ -25,8 +25,10 @@ if (missing.length) console.warn('缺少仙侠意象：', missing.join(', '));
 const script = existsSync(join(root, 'tts/script.json')) ? JSON.parse(rd('tts/script.json')) : [];
 const NARR = Object.fromEntries(script.map(s => [s.id, s.beats.join('')]));
 const AUDIO = existsSync(join(root, 'data/audio.json')) ? JSON.parse(rd('data/audio.json')) : {};
+// 配音地址：本地为相对路径 audio/；CI 构建时设 AUDIO_BASE 指向 COS，避免把音频同步到服务器
+const AUDIO_BASE = process.env.AUDIO_BASE || 'audio/';
 const T0 = existsSync(join(root, 'data/t0.json')) ? JSON.parse(rd('data/t0.json')) : {};
-const js = `(()=>{\n${ink}\nconst mountBanner=(()=>{\n${banner}\nreturn mountBanner;})();\n${demos}const SPELLS=${JSON.stringify(spells)};\nconst NARR=${JSON.stringify(NARR)};\nconst AUDIO=${JSON.stringify(AUDIO)};\nconst SPELL_T0=${JSON.stringify(T0)};\n${rd('src/app.js')}\n})();`;
+const js = `(()=>{\n${ink}\nconst mountBanner=(()=>{\n${banner}\nreturn mountBanner;})();\n${demos}const SPELLS=${JSON.stringify(spells)};\nconst NARR=${JSON.stringify(NARR)};\nconst AUDIO=${JSON.stringify(AUDIO)};\nconst SPELL_T0=${JSON.stringify(T0)};\nconst AUDIO_BASE=${JSON.stringify(AUDIO_BASE)};\n${rd('src/app.js')}\n})();`;
 if (js.includes('</script')) throw new Error('脚本里出现了 </script，无法内联');
 
 const page = rd('src/page.html');
