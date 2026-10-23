@@ -237,6 +237,8 @@ const Recorder = (() => {
       if (inst.hud) { const h = inst.hud(); if (hudE._t !== h) { hudE.textContent = h; hudE._t = h; } }
       if (phase === 'pre' && phaseT >= PRE) startAudio();
       else if (phase === 'talk') {
+        // 配音无法播放（报错或两秒不动）时改用计时，保证翻页不卡住
+        if (au && (au.error || (phaseT > 2 && au.currentTime === 0))) { console.warn('配音未能播放，改用计时：', PAGES[pi].id); au = null; }
         const ct = au ? au.currentTime : phaseT, d = au && isFinite(au.duration) ? au.duration : dur, u = Math.min(1, ct / d);
         const c = cues.find(c => u >= c.a && u < c.b) || (u >= 1 ? null : cues[0]); const s = c ? c.s : '';
         if (sub._s !== s) { sub._s = s; sub.textContent = s; sub.classList.toggle('on', !!s); }

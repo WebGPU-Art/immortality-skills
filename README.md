@@ -22,7 +22,7 @@ scripts/build.mjs   打包成单个自包含的 dist/index.html
 tools/              本地静态服务器、录制启动器、单式测试页与截图脚本
 narration/          整卷旁白稿（开场、十二境开篇、一百零三式、收尾）
 tts/                配音脚本与分段稿
-assets/audio/       配音（m4a）
+assets/audio/       配音（mp3）
 data/t0.json        每式录制时的最佳起点（秒）
 ```
 
@@ -57,7 +57,7 @@ node tools/record.mjs              # 从头开始；node tools/record.mjs s_hopf
 - 打开后先显示「法典开卷 · 预热」（逐页预编译着色器，这一段可剪掉），预热完点击任意处开始。
 - 每页：黑场过渡里快进到该式最佳起点（`data/t0.json`）→ 停半秒 → 播放该页配音 → 播完停半秒且文字动画走完 → 翻页。字幕随配音逐句出现。
 - 收尾页之后留 6 秒落幕画面再淡出。Esc 退出，← → 跳页。也可以直接在网页上点「● 录制模式」，或在地址后加 `#record` / `#record-s_hopf`。
-- 旁白稿在 `narration/`，配音脚本在 `tts/`（Gemini TTS，低沉男声）；生成的音频转成 `assets/audio/*.m4a`，时长写入 `data/audio.json`。没有配音时按语速估计每页时长。
+- 旁白稿在 `narration/`，配音脚本在 `tts/`（Gemini TTS，低沉男声）；生成的音频转成 `assets/audio/*.mp3`，时长写入 `data/audio.json`。没有配音时按语速估计每页时长。
 
 ## 部署
 
