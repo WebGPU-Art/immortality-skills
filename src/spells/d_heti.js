@@ -245,7 +245,7 @@ reg('chaossync', c => {
     const cam = { cp: lerp3(chase.cp, wide.cp, wgt), ct: lerp3(chase.ct, wide.ct, wgt), fov: .62 };
     cs = cs ? { cp: lerp3(cs.cp, cam.cp, .1), ct: lerp3(cs.ct, cam.ct, .14), fov: .62 } : cam;
     const hiU = UPS.length ? Math.floor(t / 1.6) % UPS.length : -1;
-    UPS.forEach((u, j) => { const on = j === hiU, a = on ? 1.7 : .16, cc = on ? [1, .93, .7] : u.col; for (let q = 0; q < u.n; q++) { const o = (u.o + q) * 8; D[o + 4] = cc[0]; D[o + 5] = cc[1]; D[o + 6] = cc[2]; D[o + 7] = a * (on ? .55 + .45 * Math.sin(q / u.n * TAU * 3 - t * 6) ** 2 : 1); } });
+    UPS.forEach((u, j) => { const on = j === hiU, a = on ? 2.8 : .1, cc = on ? [1, .93, .7] : u.col; for (let q = 0; q < u.n; q++) { const o = (u.o + q) * 8; D[o + 4] = cc[0]; D[o + 5] = cc[1]; D[o + 6] = cc[2]; D[o + 7] = a * (on ? .55 + .45 * Math.sin(q / u.n * TAU * 3 - t * 6) ** 2 : 1); } });
     clear(c); bg(c, t, cs.cp[0] * .3);
     draw(c, t, D, cs, { size: 2.6, fade: .22 });
     const U = UPS[hiU]; const tmpl = U ? `洛伦兹模板（Birman–Williams 分支流形）· 周期轨道 ${U.w} T=${U.T.toFixed(2)} · ` : '';
@@ -378,7 +378,7 @@ reg('lens', c => {
       let bx = x * (1 - GAM), by = y * (1 + GAM); for (let k = 0; k < NST; k++) { const dx = x - sx[k], dy = y - sy[k], r2 = dx * dx + dy * dy + 1e-6; bx -= dx / r2; by -= dy / r2; }
       const u = ((bx + SX) / (2 * SX) * MW) | 0, v = ((by + SY) / (2 * SY) * MH) | 0; if (u >= 0 && u < MW && v >= 0 && v < MH) cnt[v * MW + u]++; } }
   // 打乱射线顺序：按行跳着射，使渐显时整张图同时变清晰
-  shoot(TOT * .18);
+  shoot(TOT * .35);
   const mu = (u, v) => { const f = TOT / Math.max(shot, 1); const x = clamp(u, 0, MW - 1.001), y = clamp(v, 0, MH - 1.001), i = x | 0, j = y | 0, a = x - i, b = y - j;
     const c00 = cnt[j * MW + i], c10 = cnt[j * MW + i + 1], c01 = cnt[(j + 1) * MW + i], c11 = cnt[(j + 1) * MW + i + 1]; return ((c00 * (1 - a) + c10 * a) * (1 - b) + (c01 * (1 - a) + c11 * a) * b) * f / (rho * PXA); };
   const GW = 300, GH = 170, WX = 4.6, WZ = WX * SY / SX, HS = .32, NB = 1200, LC = 400;

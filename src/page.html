@@ -142,6 +142,29 @@ footer{padding-block:40px 120px;color:var(--dim);font-size:13px}
 #th-ctl button[aria-pressed="true"]{background:#4a3a20}
 #th-count{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;margin-right:6px}
 @media (prefers-reduced-motion:reduce){.in>*{animation:none}}
+
+/* 录制模式 */
+#recmode{font:inherit;cursor:pointer;font-size:16px;padding:8px 18px;background:transparent;color:var(--fg);border:1px solid #6a5a44;letter-spacing:.1em}
+#theater.rec,#theater.rec *{cursor:none}
+#theater.rec #th-ctl{display:none}
+#th-text.rec{width:8.5em;max-width:44%;bottom:1.15em}
+#th-text.rec .intro{width:auto;max-width:none}
+#th-text.rec .intro h1{white-space:nowrap}
+#th-text.rec .intro .tz{font-size:.32em!important}
+#th-text.rec .tl{font-size:.2em;opacity:.7}
+#th-sub{position:absolute;left:50%;transform:translateX(-50%);bottom:.32em;max-width:80%;font-size:.34em;line-height:1.4;text-align:center;padding:.12em .5em;color:#fbf6ec;background:rgba(0,0,0,.42);border-radius:.12em;opacity:0;transition:opacity .35s;text-shadow:0 1px .08em rgba(0,0,0,.9);white-space:nowrap}
+#th-sub.on{opacity:1}
+#th-box[data-dark="0"] #th-sub{background:rgba(30,22,14,.62)}
+#th-veil{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s ease}
+#th-veil.on{opacity:1}
+#th-veil.slow{transition-duration:2.5s}
+#th-load{position:absolute;inset:0;background:radial-gradient(60% 60% at 50% 45%,#1a140d,#000);display:grid;place-content:center;justify-items:center;gap:.25em;color:#e9dfcb;z-index:3}
+#th-load b{font-family:var(--f-brush);font-weight:400;font-size:1.6em;letter-spacing:.08em;animation:breathe 3s ease-in-out infinite}
+#th-load span{font-size:.24em;letter-spacing:.2em;opacity:.8}
+#th-load em{display:block;width:5em;height:.03em;background:rgba(255,255,255,.12)}
+#th-load em i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
+#th-load.ready span{color:var(--gold);opacity:1}
+@keyframes breathe{50%{opacity:.6;filter:blur(.02em)}}
 </style>
 <div class="wrap">
   <header class="hero">
@@ -155,7 +178,7 @@ footer{padding-block:40px 120px;color:var(--dim);font-size:13px}
       <div><b>约 35</b><span>分钟成片（估）</span></div>
     </div>
   </header>
-  <p class="playall-row"><button type="button" id="playall">▶ 放映全卷</button><span>按视频的样子全屏放映：每境先出境界标题，再逐式放映，文字浮在画面上。← → 切换，空格暂停自动，Esc 退出。</span></p>
+  <p class="playall-row"><button type="button" id="playall">▶ 放映全卷</button><button type="button" id="recmode">● 录制模式</button><span>按视频的样子全屏放映：每境先出境界标题，再逐式放映，文字浮在画面上。← → 切换，空格暂停自动，Esc 退出。</span></p>
   <p class="howto">每一境一种画风，越往上画面维度越高：炼气是一笔墨线，元婴是三维点云，炼虚进入四维投影，道祖是八维晶格，天道众维同屏。每一式一个实时动画，滚到哪里就播放哪里，点画面进入全屏。卡片下方可以标「保留 / 要改 / 删掉」并写意见，点底部「复制审阅意见」导出；意见只存在本机浏览器里。</p>
   <nav class="ladder" id="ladder" aria-label="十二境界"></nav>
 </div>
@@ -168,6 +191,9 @@ footer{padding-block:40px 120px;color:var(--dim);font-size:13px}
     <div id="th-text"></div>
     <div id="th-hud"></div>
     <div id="th-prog"></div>
+    <div id="th-sub" aria-live="off"></div>
+    <div id="th-veil"></div>
+    <div id="th-load" hidden><b>混沌法典</b><span>法典开卷</span><em><i></i></em></div>
   </div>
   <div id="th-ctl"><span id="th-count"></span><button type="button" id="th-prev" aria-label="上一式">◀</button><button type="button" id="th-auto" aria-pressed="true">自动</button><button type="button" id="th-restart">重播</button><button type="button" id="th-next" aria-label="下一式">▶</button><button type="button" id="th-close">关闭</button></div>
 </div>

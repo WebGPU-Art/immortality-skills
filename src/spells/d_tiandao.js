@@ -49,10 +49,10 @@ reg('kam', c => {
     for (const s_ of stars) put(s_, [1, 1, 1], .25);
     const q0 = q;
     orbs.forEach((o, i) => { const gold = i === GI, col = gold ? (o.broken ? [1, .35, .3] : [1, .84, .42]) : o.broken ? prism(o.om + t * .03) : [.82, .88, 1];
-      const a = gold ? .95 : o.broken ? .5 : .32; for (let j = 0; j < o.n; j++) put(embed(o.buf[j * 2], o.buf[j * 2 + 1]), col, a); });
+      const a = gold ? 1.1 : o.broken ? .8 : .6; for (let j = 0; j < o.n; j++) put(embed(o.buf[j * 2], o.buf[j * 2 + 1]), col, a); });
     // 镜头：环外远观 ↔ 贴着黄金环面滑翔（看共振岛链与混沌带从内外两侧逼近）
     const w = ease(.5 + .5 * Math.sin(t * .13 - 1.4)), az = t * .09;
-    const far = [10 * Math.cos(az), 4.5 + 1.5 * Math.sin(t * .05), 10 * Math.sin(az)];
+    const far = [7.2 * Math.cos(az), 3.4 + 1.2 * Math.sin(t * .05), 7.2 * Math.sin(az)];
     const gq = t * .25, gp = TAU * GOLD, base = embed(gq, gp), nrm_ = [Math.cos(gp) * Math.cos(gq), Math.sin(gp), Math.cos(gp) * Math.sin(gq)];
     const near = base.map((v, i) => v + nrm_[i] * .9), ahead = embed(gq + .5, gp);
     const eye = far.map((v, i) => lerp(v, near[i], w)), tgt = [0, 0, 0].map((v, i) => lerp(v, ahead[i], w));
@@ -60,7 +60,7 @@ reg('kam', c => {
     fx.clear(g, Math.max(c.W, c.H)); g.fillStyle = '#000'; g.fillRect(0, 0, c.W, c.H);
     const UU = { W: c.W, H: c.H, uniforms: camU(cam, 1.05, .03) };
     pc.draw(g, c.S, t, P, D.subarray(0, q0 * 8), { ...UU, n: q0, size: 2 });
-    pc.draw(g, c.S, t, P, D.subarray(q0 * 8, q * 8), { ...UU, n: q - q0, size: 2.6 });
+    pc.draw(g, c.S, t, P, D.subarray(q0 * 8, q * 8), { ...UU, n: q - q0, size: 3.4 });
     // Stern–Brocot 树：p/q 附近的环面一碎，该节点即亮成棱镜色；黄金路径（斐波那契比 → 1/φ）描金，最后才亮
     const W = c.W, H = c.H, bx = W * (W > H * 1.2 ? .62 : .1), bw = W * (W > H * 1.2 ? .34 : .8), by = H * .07, bh = H * .3;
     const pos = n => [bx + n.x * bw, by + (n.dep - 1) / 6 * bh];
@@ -310,7 +310,7 @@ reg('halting', c => {
   const stepM = m => { if (m.halt) return; const sym = m.tape[m.head], [w, d, ns] = m.tb[m.st][sym]; m.tape[m.head] = w; m.head = Math.max(0, Math.min(m.tape.length - 1, m.head + d)); m.steps++; if (ns < 0) m.halt = true; else m.st = ns; };
   return { step(t) {
     const CYC = 30, k = Math.floor(t / CYC); if (k !== gen) { gen = k; make(k); }
-    const target = Math.floor((t % CYC) * 16);
+    const target = 140 + Math.floor((t % CYC) * 16); // 开场即有一段推演历史，免得长廊空黑
     for (const m of M) while (m.hist.length < target) { if (!m.halt) stepM(m); m.hist.push({ row: m.tape.slice(TW, TW * 2), h: m.head - TW, halt: m.halt }); if (m.hist.length > HIST) m.hist.shift(); }
     const cur = M[0].hist.length ? target : 0, dz = .06, R8 = 2.2, fadeC = 1 - .75 * ease(clamp(((t % CYC) - 15) / 6));
     let q = 0; const put = (x, y, z, col, a) => { D.set([x, y, z, 0, col[0], col[1], col[2], a], q * 8); q++; };

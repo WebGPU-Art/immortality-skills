@@ -129,12 +129,12 @@ reg('mandel', c => {
       if (n >= 1200 || n < 14) continue; // 太短的轨道只会糊成一片底光，略去
       for (let k = 0; k < n; k++) { const y = ((OX[k] - RE0) / (RE1 - RE0) * BH) | 0; if (y < 0 || y >= BH) continue;
         for (const im of [OY[k], -OY[k]]) { const x = ((im - IM0) / (IM1 - IM0) * BW) | 0; if (x < 0 || x >= BW) continue; const i = y * BW + x; if (n < 60) HB[i]++; else if (n < 300) HG[i]++; else HR[i]++; } } } };
-  const mx = a => { const smp = []; for (let i = 0; i < a.length; i += 13) if (a[i] > 0) smp.push(a[i]); smp.sort((x, y) => x - y); return Math.max(1, smp[Math.floor(smp.length * .995)] || 1); };
+  const mx = a => { const smp = []; for (let i = 0; i < a.length; i += 13) if (a[i] > 0) smp.push(a[i]); smp.sort((x, y) => x - y); return Math.max(1, smp[Math.floor(smp.length * .999)] || 1); };
   const paint = () => { const mb = mx(HB), mg = mx(HG), mr = mx(HR), d = img.data, c1 = fx.hex(P.c1), ink = fx.hex(P.ink), acc = fx.hex(P.acc);
-    for (let i = 0; i < BW * BH; i++) { const b = Math.min(1, Math.pow(HB[i] / mb, 1.1)) * .55, gg = Math.min(1, Math.pow(HG[i] / mg, .8)) * .7, r = Math.min(1, Math.pow(HR[i] / mr, .6));
+    for (let i = 0; i < BW * BH; i++) { const b = Math.min(1, Math.pow(HB[i] / mb, 1.3)) * .42, gg = Math.min(1, Math.pow(HG[i] / mg, .9)) * .6, r = Math.min(1, Math.pow(HR[i] / mr, .7)) * .85;
       d[i * 4] = Math.min(255, c1[0] * b * .75 + ink[0] * gg * .7 + acc[0] * r * .6); d[i * 4 + 1] = Math.min(255, c1[1] * b * .75 + ink[1] * gg * .7 + acc[1] * r * .3); d[i * 4 + 2] = Math.min(255, c1[2] * b * .75 + ink[2] * gg * .75 + acc[2] * r * .25); d[i * 4 + 3] = 255; }
     cg.putImageData(img, 0, 0); };
-  for (let i = 0; i < 3; i++) accumulate(25); paint();
+  accumulate(c.theater ? 450 : 120); paint();
   const BUD = 18, DIVE = 22, CYC = BUD + DIVE;
   return { step(t) {
     const W = c.W, H = c.H, tc = t % CYC;
@@ -325,7 +325,7 @@ reg('replicator', c => {
   const D = new Float32Array((NN * 14 * 2 + NN * 8 * 2) * 8), Dp = new Float32Array(NN * 3 * 8);
   const g1 = c01(P.c1), g2 = c01(P.ink), ac = c01(P.acc);
   return { step(t) {
-    const GEN_T = 1.8, CYC = G * GEN_T + 5, tc = t % CYC, gF = Math.min(G, tc / GEN_T), gi = Math.floor(gF), fr = ease(gF - gi), done = gF >= G;
+    const GEN_T = 2.2, CYC = G * GEN_T + 5, tc = t % CYC, gF = Math.min(G, tc / GEN_T), gi = Math.floor(gF), fr = ease(gF - gi), done = gF >= G;
     // 八维 → 三维：佩特里式投影基，随时间在高维缓转
     const B = []; for (let k = 0; k < G; k++) { const a = ((k * 3) % G) * Math.PI / G + .15 * Math.sin(t * .2 + k); B.push([Math.cos(a), Math.sin(a), .6 * Math.cos(3 * a + t * .25 + k * .7)]); }
     const posAt = m => { let x = 0, y = 0, z = 0; for (let k = 0; k < G; k++) { let s = (m >> k & 1) ? 1 : -1; if (k > gi) s = -1; if (k === gi && !done && (m >> k & 1)) s = -1 + 2 * fr; x += s * B[k][0]; y += s * B[k][1]; z += s * B[k][2]; } return [x * .4, y * .4, z * .4]; };

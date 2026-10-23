@@ -168,14 +168,14 @@ reg('sandpile', c => {
     if (phase < 2 && tc > 15.5) { while (sweep()); if (phase === 0) { for (let i = 0; i < NN; i++) h[i] = 6 - h[i]; while (sweep()); } phase = 2; }
     if (phase === 2 && !bd) { bd = new Uint8Array(NN); for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) { const i = y * N + x, v = h[i]; if (h[i - 1] !== v || h[i + 1] !== v || h[i - N] !== v || h[i + N] !== v) bd[i] = 1; } }
     const tr = tour(t, { per: 18, r: 2.05, rn: 1.05, h: .62, top: 3.5, a0: .7, spin: 1.8 });
-    const fF = phase < 2 ? .35 + .3 * Math.sin(t * 9) : 0;
+    const fF = phase < 2 ? .14 + .1 * Math.sin(t * 9) : 0;
     sky(c, E, tr, t, { F: fF, FP: [0, 1.25, 0], target: [0, .02, 0], seed: 3.1 + cy, Y0: 1.55, nobolt: phase === 2 });
     let n = 0; const wave = (tc - 15) * .32;
     for (let i = 0; i < NN; i++) { const v = phase === 2 ? h[i] : Math.min(3, h[i]), f = fl[i]; fl[i] = f * .8; const o = n * 8, x = i % N, y = (i / N) | 0, cl = pal[v];
       let b = 0; if (bd && bd[i]) { const u = dist[i] * 3 - wave; b = Math.pow(.5 + .5 * Math.cos((u - Math.floor(u)) * TAU), 18) * 2.4 + .25; }
-      const w = Math.min(1, f * .5 + b * .5);
+      const w = Math.min(1, f * .18 + b * .5);
       D[o] = (x - N / 2) * sc; D[o + 2] = (y - N / 2) * sc; D[o + 1] = v * .045 + f * .06 + b * .02; D[o + 3] = 0;
-      D[o + 4] = cl[0] + (white[0] - cl[0]) * w; D[o + 5] = cl[1] + (white[1] - cl[1]) * w; D[o + 6] = cl[2] + (white[2] - cl[2]) * w; D[o + 7] = .55 + v * .2 + f * .5 + b; n++; }
+      D[o + 4] = cl[0] + (white[0] - cl[0]) * w; D[o + 5] = cl[1] + (white[1] - cl[1]) * w; D[o + 6] = cl[2] + (white[2] - cl[2]) * w; D[o + 7] = .5 + v * .18 + f * .14 + b; n++; }
     E.pts.draw(g, c.W, t, P, D, { W: c.W, H: c.H, n, size: 5.6, uniforms: camU(tr.cam) });
     // 右上：单位元俯视小图（精确的格点值）
     const [ix, iy, iw, ih] = inset(c, 0, .2, .2), cell = Math.min(iw, ih) / N, ox = ix + (iw - cell * N) / 2;

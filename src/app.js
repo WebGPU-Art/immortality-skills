@@ -174,3 +174,103 @@ const Theater = (() => {
   })(lastT);
   return api;
 })();
+
+// ---------- 录制模式：按配音逐页推进，供屏幕录制 ----------
+// 入口：页面上的「录制模式」按钮，或地址末尾加 #record。
+// 每页：进入（黑场过渡里快进到 t0）→ 停 0.5 秒 → 播放该页配音 → 播完停 0.5 秒且文字动画已走完 → 翻页。
+// 开头：加载与预热画面（可剪掉），点击或自动开始；结尾：收尾页后留 6 秒落幕画面。
+const Recorder = (() => {
+  const el = $('#theater'), cv = $('#th-cv'), box = $('#th-box'), tx = $('#th-text'), ttl = $('#th-title'), hudE = $('#th-hud'), prog = $('#th-prog'), sub = $('#th-sub'), veil = $('#th-veil'), load = $('#th-load');
+  const PRE = .5, POST = .5, MIN_TEXT = 2.6, FF_DT = .1, LEAD_OUT = 6;
+  const T0 = (typeof SPELL_T0 !== 'undefined') ? SPELL_T0 : {};
+  // 页面序列
+  const PAGES = [{ id: 'open', kind: 'open', realm: 'lianqi' }];
+  REALM_ORDER.forEach(rk => { PAGES.push({ id: 'intro_' + rk, kind: 'intro', realm: rk }); SPELLS.filter(s => s.realm === rk).forEach(s => PAGES.push({ id: 's_' + s.k, kind: 'spell', realm: rk, s })); });
+  PAGES.push({ id: 'close', kind: 'close', realm: 'tiandao' });
+  const narr = id => (NARR[id] || '');
+  const estDur = id => Math.max(3, narr(id).length / 3.6);  // 没有配音时按语速估计
+  const audioOf = id => AUDIO[id] ? { src: 'audio/' + AUDIO[id].f, dur: AUDIO[id].d } : null;
+  let on = false, pi = 0, inst = null, tt = 0, phase = 'idle', phaseT = 0, au = null, dur = 0, enterAt = 0, cues = [], nextAu = null, endHold = 0;
+
+  function splitCues(text) {
+    const out = []; text.split(/(?<=[。！？；])/).forEach(sn => { sn = sn.trim(); if (!sn) return; if (sn.length <= 30) { out.push(sn); return; } let cur = ''; sn.split(/(?<=[，、：])/).forEach(p => { if ((cur + p).length > 30 && cur) { out.push(cur); cur = p; } else cur += p; }); if (cur) out.push(cur); });
+    const tot = out.reduce((a, s) => a + s.length, 0) || 1; let acc = 0; return out.map(s => { const c = { s, a: acc / tot }; acc += s.length; c.b = acc / tot; return c; });
+  }
+  function texts(pg) {
+    const P = REALMS[pg.realm], ri = REALM_ORDER.indexOf(pg.realm);
+    box.dataset.dark = P.dark ? '1' : '0'; box.style.setProperty('--c1', P.dark ? P.c1 : P.acc); box.style.setProperty('--ink', P.dark ? P.ink : '#1a1510');
+    if (pg.kind === 'spell') {
+      const s = pg.s; ttl.innerHTML = `<span class="tr">${P.n}</span><span class="tm">第${NUM[ri]}境 · ${TIER[pg.realm]}</span>`;
+      tx.className = 'rec'; tx.innerHTML = `<h2>${esc(s.n)}</h2><p class="tc">${esc(s.chant)}</p><p class="tl">${esc(s.rule)}</p>`;
+    } else if (pg.kind === 'intro') {
+      ttl.innerHTML = ''; tx.className = 'rec'; tx.innerHTML = `<div class="intro"><span class="tm">第${NUM[ri]}境 · 算力 ≈ 10<sup>${P.pow}</sup> 次/秒 · ${TIER[pg.realm]}</span><h1>${P.n}</h1><p class="tz">造诣 · ${P.zao}</p></div>`;
+    } else {
+      ttl.innerHTML = ''; tx.className = 'rec'; tx.innerHTML = `<div class="intro"><span class="tm">${pg.kind === 'open' ? '一百零三式 · 十二境' : '法典合上，混沌还在'}</span><h1>混沌法典</h1><p class="tz">${pg.kind === 'open' ? '咒语即方程 · 灵力即算力' : '境界与名号皆是故事；方程与规律真实不虚'}</p></div>`;
+    }
+    void tx.offsetWidth; tx.classList.add('in'); if (ttl.innerHTML) { ttl.classList.remove('in'); void ttl.offsetWidth; ttl.classList.add('in'); }
+    [...prog.children].forEach(sp => { const r2 = REALM_ORDER.indexOf(sp.dataset.r); const list = SPELLS.filter(q => q.realm === sp.dataset.r); const i = pg.s ? list.indexOf(pg.s) : -1; sp.querySelector('i').style.width = (r2 < ri ? 100 : r2 > ri ? 0 : (i + 1) / list.length * 100) + '%'; });
+    prog.style.visibility = pg.kind === 'open' || pg.kind === 'close' ? 'hidden' : 'visible';
+  }
+  function mountPage(pg) {
+    hudE.textContent = ''; sub.textContent = ''; sub.classList.remove('on');
+    if (pg.kind === 'spell') inst = mount(cv, pg.s.k, pg.realm, { seal: pg.s.f.slice(0, 2), theater: true });
+    else inst = mountBanner(cv, pg.realm);
+    // 快进到最佳起点（黑场里进行）
+    const t0 = pg.kind === 'spell' ? (T0[pg.s.k] || 0) : 0; tt = 0; while (tt < t0) { tt = Math.min(t0, tt + FF_DT); inst.frame(tt); }
+    cues = splitCues(narr(pg.id));
+    const a = audioOf(pg.id); dur = a ? a.dur : estDur(pg.id);
+    au = a ? (nextAu && nextAu._id === pg.id ? nextAu : new Audio(a.src)) : null; if (au) { au._id = pg.id; au.preload = 'auto'; }
+    // 预载下一页配音
+    const nx = PAGES[pi + 1], na = nx && audioOf(nx.id); nextAu = na ? Object.assign(new Audio(na.src), { _id: nx.id, preload: 'auto' }) : null;
+  }
+  function go(i) {
+    pi = i; const pg = PAGES[pi];
+    veil.classList.add('on'); phase = 'veil'; phaseT = 0;
+    setTimeout(() => { mountPage(pg); texts(pg); phase = 'pre'; phaseT = 0; enterAt = performance.now(); veil.classList.remove('on'); }, 380);
+  }
+  function startAudio() { if (au) { au.currentTime = 0; const p = au.play(); if (p && p.catch) p.catch(() => {}); } phase = 'talk'; phaseT = 0; }
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(.1, (now - last) / 1000); last = now;
+    if (on && inst) {
+      tt += dt; inst.frame(tt); phaseT += dt;
+      if (inst.hud) { const h = inst.hud(); if (hudE._t !== h) { hudE.textContent = h; hudE._t = h; } }
+      if (phase === 'pre' && phaseT >= PRE) startAudio();
+      else if (phase === 'talk') {
+        const ct = au ? au.currentTime : phaseT, d = au && isFinite(au.duration) ? au.duration : dur, u = Math.min(1, ct / d);
+        const c = cues.find(c => u >= c.a && u < c.b) || (u >= 1 ? null : cues[0]); const s = c ? c.s : '';
+        if (sub._s !== s) { sub._s = s; sub.textContent = s; sub.classList.toggle('on', !!s); }
+        if ((au && au.ended) || (!au && phaseT >= dur)) { phase = 'post'; phaseT = 0; sub.classList.remove('on'); }
+      } else if (phase === 'post') {
+        const textDone = (performance.now() - enterAt) / 1000 >= MIN_TEXT;
+        if (phaseT >= POST && textDone) { if (pi + 1 < PAGES.length) go(pi + 1); else { phase = 'end'; phaseT = 0; } }
+      } else if (phase === 'end' && phaseT >= LEAD_OUT && !endHold) { endHold = 1; veil.classList.add('on', 'slow'); }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+  // 开头：加载与预热（逐个挂载一帧，让着色器提前编译），这一段方便剪掉
+  async function warm() {
+    const tmp = document.createElement('canvas'); tmp.width = 480; tmp.height = 270; const bar = $('#th-load i'), txt = $('#th-load span');
+    for (let i = 0; i < PAGES.length; i++) {
+      const pg = PAGES[i]; txt.textContent = `法典开卷 · 预热第 ${i + 1} / ${PAGES.length} 页`; bar.style.width = ((i + 1) / PAGES.length * 100) + '%';
+      try { const m = pg.kind === 'spell' ? mount(tmp, pg.s.k, pg.realm, { theater: true }) : mountBanner(tmp, pg.realm); m.frame(.05); m.frame(.1); } catch (e) { console.warn(pg.id, e); }
+      await new Promise(r => setTimeout(r, 0));
+    }
+    txt.textContent = '预热完毕 · 点击任意处开始（录制时请先开始录屏）'; load.classList.add('ready');
+  }
+  function enter() {
+    on = true; Theater.on = true; el.hidden = false; el.classList.add('rec'); document.body.style.overflow = 'hidden'; load.hidden = false; load.classList.remove('ready');
+    addEventListener('resize', size); size();
+    try { el.requestFullscreen && el.requestFullscreen().catch(() => {}); } catch (e) {}
+    warm();
+  }
+  function size() { const vw = innerWidth, vh = innerHeight, ar = 16 / 9; let w = vw, h = vw / ar; if (h > vh) { h = vh; w = vh * ar; } box.style.width = w + 'px'; box.style.height = h + 'px'; box.style.fontSize = (h / 1080 * 100) + 'px'; const pr = Math.min(window.devicePixelRatio || 1, 2), W = Math.min(1920, Math.round(w * pr)); if (cv.width !== W) { cv.width = W; cv.height = Math.round(W * 9 / 16); } }
+  let startAt = 0;
+  load.addEventListener('click', () => { if (!load.classList.contains('ready')) return; load.hidden = true; ttl.innerHTML = ''; tx.innerHTML = ''; setTimeout(() => go(startAt), 1500); });
+  addEventListener('keydown', e => { if (!on) return; if (e.key === 'Escape') { on = false; Theater.on = false; el.classList.remove('rec'); el.hidden = true; inst = null; if (au) au.pause(); document.body.style.overflow = ''; } else if (e.key === 'ArrowRight' && phase !== 'veil') { if (au) au.pause(); go(Math.min(PAGES.length - 1, pi + 1)); } else if (e.key === 'ArrowLeft' && phase !== 'veil') { if (au) au.pause(); go(Math.max(0, pi - 1)); } });
+  $('#recmode').addEventListener('click', enter);
+  // #record 从头开始；#record-s_hopf 或 #record-intro_lianxu 从指定页开始（便于分段补录）
+  if (location.hash.startsWith('#record')) { const id = location.hash.slice(8); const i = PAGES.findIndex(p => p.id === id); startAt = i > 0 ? i : 0; setTimeout(enter, 300); }
+  return { enter, PAGES };
+})();

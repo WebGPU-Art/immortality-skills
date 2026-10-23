@@ -221,8 +221,8 @@ reg('tunnel', c => {
     const snap = new Float32Array(MX * 2); for (let j = 0; j < MX; j++) { const i = Math.floor(j * N / MX); snap[j * 2] = re[i] ** 2 + im[i] ** 2; snap[j * 2 + 1] = Math.atan2(im[i], re[i]); }
     if (!hist.length || steps !== hist[0].s) { hist.unshift({ s: steps, d: snap }); if (hist.length > HIS) hist.pop(); }
     fx.clear(g, S); bg(g, S, t, P); let o = 0;
-    hist.forEach((h, hi) => { const z = .7 - hi / HIS * 2.6, fade = 1 - hi / HIS; for (let j = 0; j < MX; j++) { const x = (j / MX - .5) * 2.6, p = h.d[j * 2], y = Math.min(1.5, p * .075) - .6, ph = .5 + .5 * Math.cos(h.d[j * 2 + 1]);
-      D.set([x, y, z, 0, c1[0] * ph + c2[0] * (1 - ph), c1[1] * ph + c2[1] * (1 - ph), c1[2] * ph + c2[2] * (1 - ph), (.16 + Math.min(1.3, p * .09)) * fade], o); o += 8; } });
+    hist.forEach((h, hi) => { const z = .7 - hi / HIS * 2.6, fade = 1 - hi / HIS; for (let j = 0; j < MX; j++) { const x = (j / MX - .5) * 2.6, p = h.d[j * 2], y = Math.min(1.3, p * .5) - .6, ph = .5 + .5 * Math.cos(h.d[j * 2 + 1]);
+      D.set([x, y, z, 0, c1[0] * ph + c2[0] * (1 - ph), c1[1] * ph + c2[1] * (1 - ph), c1[2] * ph + c2[2] * (1 - ph), (.32 + Math.min(1.6, p * 1.4)) * fade], o); o += 8; } });
     for (let i = 0; i < 300; i++) { const zz = .7 - (i % 60) / 60 * 2.6, yy = -.6 + Math.floor(i / 60) / 4 * 1.0; D.set([(.55 - .5) * 2.6, yy, zz, 0, ...ac, .35], o); o += 8; }
     pc.draw(g, S, t, P, D, { n: o / 8, yaw: -.35, pitch: .42, scale: .8, dist3: 4.5, size: 3.8 });
     let Tr = 0; for (let i = Math.floor((.55 + width) * N); i < N; i++) Tr += (re[i] ** 2 + im[i] ** 2) * dx;

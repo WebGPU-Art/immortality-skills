@@ -312,7 +312,7 @@ reg('telomere', c => {
   const C1 = c01(P.c1), C2 = c01(P.c2), AC = c01(P.acc);
   return { step(t) {
     const CYC = 18, tc = t % CYC, cc = Math.floor(t / CYC), drug = tc > 9;
-    const genF = tc < 9 ? 4.5 + tc / 9 * 4.5 : 9 + (tc - 9) / 7 * 3.4;
+    const genF = tc < 9 ? 6 + tc / 9 * 3 : 9 + (tc - 9) / 7 * 3.4;
     const N = [{ p: [0, -1.25, 0], d: [0, 1, 0], tel: T0, gen: 0, id: 1 }], segs = []; const yaw0 = cc * .7;
     while (N.length && segs.length < MAXS) { const n = N.pop(); const L = .46 * Math.pow(.8, n.gen) * (.55 + .45 * Math.max(0, n.tel) / T0); const grow = clamp(genF - n.gen); if (grow <= 0) continue;
       const e = [n.p[0] + n.d[0] * L * grow, n.p[1] + n.d[1] * L * grow, n.p[2] + n.d[2] * L * grow], senes = n.tel <= 0; segs.push([n.p, e, n.tel, n.gen, senes, grow, n.id]);

@@ -425,7 +425,7 @@ reg('anderson', c => {
     let o = 0, r2 = 0, tot = 0, pk = 0;
     for (let y = 0; y < L; y++) for (let x = 0; x < L; x++) { const i = y * L + x, p = re[i] * re[i] + im[i] * im[i], dx = x - L / 2, dy = y - L / 2; r2 += p * (dx * dx + dy * dy); tot += p; pk = Math.max(pk, p);
       const h = Math.log10(1 + p * 3e4) * .32, e = eps[i] / 14; const cl = h > .02 ? c2 : (!W ? c1 : e > 0 ? c1 : ac);
-      D.set([(x / L - .5) * 3, Math.min(1.6, h) - .45 + (W ? e * .09 : 0), (y / L - .5) * 3, 0, ...cl, h > .02 ? Math.min(1.3, .2 + h * 2) : (W ? .06 + Math.abs(e) * .22 : .05)], o); o += 8; }
+      D.set([(x / L - .5) * 3, Math.min(1.6, h) - .45 + (W ? e * .09 : 0), (y / L - .5) * 3, 0, ...cl, h > .02 ? Math.min(1.7, .38 + h * 2.8) : (W ? .13 + Math.abs(e) * .38 : .14)], o); o += 8; }
     // 囚灵符环：无序时收紧在原地，有序时随波扩散
     const rad = Math.sqrt(r2 / tot) / L * 3 * 1.6 + .08;
     for (let i = 0; i < RUNE; i++) { const u = i / RUNE * TAU; D.set([rad * Math.cos(u + t * .5), .9 + .05 * Math.sin(u * 8 + t * 3), rad * Math.sin(u + t * .5), 0, ...ac, (i % 30 < 3) ? 1.4 : .45], o); o += 8; }
@@ -434,7 +434,7 @@ reg('anderson', c => {
     const eye = [R0 * Math.cos(ang), .45 + .35 * Math.cos(Math.PI * ph) + .1 * Math.sin(t * .9), R0 * Math.sin(ang)], cm = look(eye, [0, .15, 0]);
     sky(c, t, cm, .2);
     drawP(c.pd, c, t, c.dust, cm, { size: 2, noBlit: true });
-    drawP(pc, c, t, D, cm, { n: o / 8, size: 3.4, far: 12, keep: true });
+    drawP(pc, c, t, D, cm, { n: o / 8, size: 4.2, far: 12, keep: true });
     c.hud(`无序强度 W = ${W} · 扩散半径 ${Math.sqrt(r2 / tot).toFixed(1)} 格 · t = ${simT.toFixed(1)}${W ? ' · 灵波被困原地' : ' · 灵波四散'}`);
   } };
 }, { full: true });
