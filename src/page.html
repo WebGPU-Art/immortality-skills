@@ -1,0 +1,174 @@
+<title>混沌法典 · 全卷</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;900&display=swap">
+<style>
+/* 布局：卷轴式长页。顶部总纲 + 境界阶梯；每一境是一段整幅色带（该境底色），内含横幅意象与法术卡片网格。单一深色世界观。 */
+:root{
+  --bg:#0d0b09; --fg:#eee5d2; --dim:#a89d88; --line:#2c2620; --seal:#c8321e; --gold:#e3b75a;
+  --f-brush:"Ma Shan Zheng","STKaiti","KaiTi","Kaiti SC",serif;
+  --f-body:"Noto Serif SC","Songti SC","SimSun",serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.7}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1320px;margin:0 auto}
+a{color:inherit}
+/* 总纲 */
+.hero{padding-block:56px 28px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:40px;align-items:end}
+.hero h1{font-family:var(--f-brush);font-weight:400;font-size:clamp(56px,9vw,120px);line-height:1;margin:0;letter-spacing:.04em;text-wrap:balance}
+.hero h1 .s{display:inline-block;writing-mode:vertical-rl;background:var(--seal);color:#f6ecd8;font-size:.26em;line-height:1;letter-spacing:.05em;vertical-align:.9em;margin-left:.2em;border-radius:4px;padding:.18em .12em}
+.hero .lead{font-size:18px;max-width:34em;margin:18px 0 0;color:var(--fg)}
+.hero .facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.hero .facts div{background:var(--bg);padding:14px 16px}
+.hero .facts b{display:block;font-family:var(--f-brush);font-weight:400;font-size:40px;line-height:1.1;color:var(--gold)}
+.hero .facts span{font-size:13px;color:var(--dim)}
+.howto{color:var(--dim);font-size:14px;max-width:62em;padding-block:0 18px}
+/* 境界阶梯 */
+.ladder{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:6px;padding-block:8px 40px}
+.rung{display:flex;flex-direction:column;align-items:center;text-decoration:none;padding:10px 4px 8px;border-top:3px solid var(--rc);background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);transition:background .2s}
+.rung:hover,.rung:focus-visible{background:linear-gradient(180deg,rgba(255,255,255,.1),transparent);outline:none}
+.rung:focus-visible{box-shadow:0 0 0 2px var(--rc)}
+.rn{font-family:var(--f-brush);font-size:26px;line-height:1.2}
+.rp{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.rz{font-size:11px;color:var(--dim);text-align:center;line-height:1.3}
+/* 境界色带 */
+.realm{background:radial-gradient(120% 80% at 50% 0%,var(--p0),var(--p1));color:var(--ink);padding-block:56px 48px}
+.realm .inner{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1320px;margin:0 auto;display:grid;gap:24px}
+.realm.light{--txt:#1c1813;--sub:#5d5244;--card:rgba(255,252,244,.55);--bd:rgba(40,30,20,.16)}
+.realm.dark{--txt:#ece6da;--sub:#a59e93;--card:rgba(0,0,0,.35);--bd:rgba(255,255,255,.1)}
+.realm{color:var(--txt)}
+.rh{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px 36px;align-items:end}
+.rtitle{display:grid;gap:4px}
+.rnum{font-size:13px;letter-spacing:.4em;color:var(--sub)}
+.rh h2{font-family:var(--f-brush);font-weight:400;font-size:clamp(64px,8vw,104px);line-height:.95;margin:0;color:var(--txt)}
+.realm.dark .rh h2{text-shadow:0 0 28px color-mix(in srgb,var(--c1) 55%,transparent)}
+.realm.light .rh h2::after{content:"";display:inline-block;width:.18em;height:.18em;background:var(--acc);margin-left:.08em;vertical-align:.1em}
+.rmeta{display:flex;gap:28px;margin:0;flex-wrap:wrap}
+.rmeta div{display:grid}
+.rmeta dt{font-size:12px;letter-spacing:.2em;color:var(--sub)}
+.rmeta dd{margin:0;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.rnote{grid-column:1/-1;margin:0;color:var(--sub);max-width:60em}
+.swatches{display:flex;gap:12px;font-size:12px;color:var(--sub);align-self:center}
+.swatches span{display:flex;flex-direction:column;align-items:center;gap:2px}
+.swatches i{display:block;width:22px;height:22px;border-radius:50%;border:1px solid var(--bd)}
+.banner{width:100%;max-width:100%;aspect-ratio:4/1;display:block;border-radius:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:18px}
+/* 法术卡 */
+.card{background:var(--card);border:1px solid var(--bd);display:flex;flex-direction:column;min-width:0}
+.card[data-v="ok"]{box-shadow:inset 0 3px 0 #4caf7a}
+.card[data-v="fix"]{box-shadow:inset 0 3px 0 #e3a43a}
+.card[data-v="cut"]{box-shadow:inset 0 3px 0 #d0413a;opacity:.72}
+.cv{position:relative}
+.cv canvas{width:100%;max-width:100%;aspect-ratio:1;display:block;cursor:pointer}
+.hud{position:absolute;left:10px;bottom:8px;right:64px;font-size:12px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);font-variant-numeric:tabular-nums;pointer-events:none}
+.badge{position:absolute;left:10px;top:10px;font-size:11px;padding:1px 8px;background:var(--seal);color:#f6ecd8;letter-spacing:.1em}
+.badge.old{background:rgba(0,0,0,.55);color:#e9dcc0}
+.body{padding:12px 14px 14px;display:grid;gap:6px;min-width:0}
+.body h3{font-family:var(--f-brush);font-weight:400;font-size:30px;line-height:1.15;margin:0}
+.tags{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--sub)}
+.tags span{border:1px solid var(--bd);padding:0 7px}
+.tags .key{font-family:var(--f-mono);font-size:11px}
+.chant{margin:0;font-size:15px;font-weight:600;color:var(--txt)}
+.chant::before{content:"「"}.chant::after{content:"」"}
+.rule,.eff,details p{margin:0;font-size:13.5px;color:var(--sub);overflow-wrap:anywhere}
+.rule b,details b{font-weight:600;color:var(--txt);margin-right:.5em}
+details summary{font-size:13px;color:var(--sub);cursor:pointer}
+details[open]{display:grid;gap:4px}
+.rv{display:flex;gap:6px;margin-top:4px}
+.rv button,.tool button{font:inherit;font-size:13px;padding:3px 12px;background:transparent;color:var(--txt);border:1px solid var(--bd);cursor:pointer}
+.rv button[aria-pressed="true"][data-v="ok"]{background:#2f7a52;color:#fff;border-color:#2f7a52}
+.rv button[aria-pressed="true"][data-v="fix"]{background:#b07a1c;color:#fff;border-color:#b07a1c}
+.rv button[aria-pressed="true"][data-v="cut"]{background:#a8302a;color:#fff;border-color:#a8302a}
+button:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+textarea{font:inherit;font-size:13px;width:100%;box-sizing:border-box;background:var(--card);color:var(--txt);border:1px solid var(--bd);padding:6px 8px;resize:vertical}
+.rreview{display:grid;gap:4px;max-width:720px}
+.rreview label{font-size:13px;color:var(--sub)}
+/* 底部工具条 */
+.tool{position:fixed;left:0;right:0;bottom:0;z-index:5;background:rgba(13,11,9,.92);backdrop-filter:blur(6px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tool .wrap{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding-block:8px}
+.tool button{--txt:var(--fg);--bd:#4a4034}
+.tool #cnt{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;margin-right:auto}
+#out{width:100%;max-width:100%}
+footer{padding-block:40px 120px;color:var(--dim);font-size:13px}
+@media (max-width:900px){.hero{grid-template-columns:1fr}.ladder{grid-template-columns:repeat(6,minmax(0,1fr))}.rh{grid-template-columns:1fr}.swatches{align-self:start}}
+@media (max-width:480px){.ladder{grid-template-columns:repeat(4,minmax(0,1fr))}.rmeta{gap:16px}.hero .facts b{font-size:30px}}
+@media (prefers-reduced-motion:reduce){.rung{transition:none}}
+
+/* 卡片新增 */
+.xian{margin:0;font-size:13.5px;color:var(--txt)}
+.xian b{font-weight:600;color:var(--acc);margin-right:.5em}
+.realm.dark .xian b{color:var(--c1)}
+.rnote b{font-weight:600;color:var(--txt);margin-right:.5em}
+.play-realm,.fsbtn,#playall{font:inherit;cursor:pointer}
+.play-realm{grid-column:1/-1;justify-self:start;font-size:14px;padding:4px 14px;background:transparent;color:var(--txt);border:1px solid var(--bd)}
+.fsbtn{position:absolute;right:10px;top:10px;font-size:12px;padding:2px 9px;background:rgba(0,0,0,.55);color:#f2e8d4;border:1px solid rgba(255,255,255,.25)}
+.playall-row{display:flex;gap:16px;align-items:center;flex-wrap:wrap;color:var(--dim);font-size:14px;margin:0 0 14px}
+#playall{font-size:16px;padding:8px 22px;background:var(--seal);color:#f6ecd8;border:0;letter-spacing:.1em}
+/* 放映 */
+#theater{position:fixed;inset:0;z-index:50;background:#000;display:grid;place-items:center}
+#theater[hidden],[hidden]{display:none!important}
+#th-box{position:relative;overflow:hidden;--ink:#f3ecdf;--c1:#e3b75a;color:var(--ink)}
+#th-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.scrim{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.5) 0,rgba(0,0,0,0) 16%),radial-gradient(85% 75% at 0% 100%,rgba(0,0,0,.82),rgba(0,0,0,.4) 45%,rgba(0,0,0,0) 75%)}
+#th-box[data-dark="0"] .scrim{background:linear-gradient(180deg,rgba(250,244,230,.6) 0,rgba(250,244,230,0) 18%),radial-gradient(70% 60% at 0% 100%,rgba(250,244,230,.78),rgba(250,244,230,0) 70%)}
+#th-title{position:absolute;left:.5em;top:.4em;display:flex;align-items:baseline;gap:.25em}
+#th-title .tr{font-family:var(--f-brush);font-size:.9em;line-height:1;text-shadow:0 0 .3em rgba(0,0,0,.4)}
+#th-title .tm,.intro .tm{font-size:.2em;letter-spacing:.2em;opacity:.8}
+#th-text{position:absolute;left:.55em;bottom:.62em;width:7em;max-width:40%}
+#th-text h2{font-family:var(--f-brush);font-weight:400;font-size:1.25em;line-height:1;margin:0 0 .12em;text-shadow:0 0 .25em color-mix(in srgb,var(--c1) 50%,transparent)}
+#th-text p{margin:.08em 0 0;font-size:.235em;line-height:1.55;text-wrap:pretty}
+#th-text .tc{font-size:.3em;font-weight:600;color:var(--c1)}
+#th-text .tc::before{content:"「"}#th-text .tc::after{content:"」"}
+#th-text .tx{opacity:.95}
+#th-text .te{opacity:.82}
+#th-text .tl{font-size:.19em;opacity:.65}
+#th-box[data-dark="1"] #th-text p,#th-box[data-dark="1"] #th-title{text-shadow:0 1px .1em rgba(0,0,0,.85)}
+.intro{position:absolute;left:0;bottom:1.2em;width:9em}
+.intro h1{font-family:var(--f-brush);font-weight:400;font-size:2.4em;line-height:1;margin:.05em 0 .1em;text-shadow:0 0 .3em color-mix(in srgb,var(--c1) 60%,transparent)}
+.intro p{font-size:.3em!important;max-width:24em}
+.intro .tz{color:var(--c1)}
+#th-hud{position:absolute;right:1.6em;bottom:.42em;font-size:.18em;opacity:.8;font-variant-numeric:tabular-nums;text-align:right;max-width:40%}
+#th-prog{position:absolute;left:0;right:0;bottom:0;height:.035em;display:flex;gap:2px;opacity:.75}
+#th-prog span{background:rgba(255,255,255,.15);position:relative}
+#th-prog i{position:absolute;inset:0 auto 0 0;background:var(--c1);width:0}
+.in>*{animation:inkin 1.4s cubic-bezier(.2,.7,.2,1) both}
+.in>*:nth-child(2){animation-delay:.25s}.in>*:nth-child(3){animation-delay:.5s}.in>*:nth-child(4){animation-delay:.75s}.in>*:nth-child(5){animation-delay:1s}
+@keyframes inkin{from{opacity:0;filter:blur(.12em);transform:translateY(.1em)}to{opacity:1;filter:none;transform:none}}
+#th-ctl{position:fixed;left:50%;transform:translateX(-50%);bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;padding:6px 10px;background:rgba(10,8,6,.72);border:1px solid #4a4034;opacity:0;transition:opacity .3s}
+#theater.ui #th-ctl,#th-ctl:focus-within{opacity:1}
+#th-ctl button{font:inherit;font-size:14px;padding:4px 12px;background:transparent;color:var(--fg);border:1px solid #4a4034;cursor:pointer}
+#th-ctl button[aria-pressed="true"]{background:#4a3a20}
+#th-count{font-size:13px;color:var(--dim);font-variant-numeric:tabular-nums;margin-right:6px}
+@media (prefers-reduced-motion:reduce){.in>*{animation:none}}
+</style>
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <h1>混沌法典<span class="s">全卷</span></h1>
+      <p class="lead">咒语即方程，灵力即算力。一百零三式法术、法器与天劫，从炼气排到天道，每一式背后都是一条真实的规则，画面全部由方程实时算出。</p>
+    </div>
+    <div class="facts" aria-label="全卷概况">
+      <div><b>103</b><span>式法术</span></div>
+      <div><b>12</b><span>个境界</span></div>
+      <div><b>约 35</b><span>分钟成片（估）</span></div>
+    </div>
+  </header>
+  <p class="playall-row"><button type="button" id="playall">▶ 放映全卷</button><span>按视频的样子全屏放映：每境先出境界标题，再逐式放映，文字浮在画面上。← → 切换，空格暂停自动，Esc 退出。</span></p>
+  <p class="howto">每一境一种画风，越往上画面维度越高：炼气是一笔墨线，元婴是三维点云，炼虚进入四维投影，道祖是八维晶格，天道众维同屏。每一式一个实时动画，滚到哪里就播放哪里，点画面进入全屏。卡片下方可以标「保留 / 要改 / 删掉」并写意见，点底部「复制审阅意见」导出；意见只存在本机浏览器里。</p>
+  <nav class="ladder" id="ladder" aria-label="十二境界"></nav>
+</div>
+<main id="realms"></main>
+<div class="wrap"><footer>修仙境界、算力档位与法术名称为故事设定；方程与演示本身为真实的科学模型，个别为示意简化，卡片「真实度」一栏已注明。画面与文字由 Claude 生成。</footer></div>
+<div id="theater" hidden role="dialog" aria-modal="true" aria-label="全屏放映">
+  <div id="th-box"><canvas id="th-cv" width="1920" height="1080"></canvas>
+    <div class="scrim"></div>
+    <div id="th-title"></div>
+    <div id="th-text"></div>
+    <div id="th-hud"></div>
+    <div id="th-prog"></div>
+  </div>
+  <div id="th-ctl"><span id="th-count"></span><button type="button" id="th-prev" aria-label="上一式">◀</button><button type="button" id="th-auto" aria-pressed="true">自动</button><button type="button" id="th-restart">重播</button><button type="button" id="th-next" aria-label="下一式">▶</button><button type="button" id="th-close">关闭</button></div>
+</div>
+<div class="tool"><div class="wrap"><span id="cnt"></span><button type="button" id="play" aria-pressed="true">暂停全部</button><button type="button" id="copy">复制审阅意见</button><textarea id="out" rows="6" hidden aria-label="审阅意见文本"></textarea></div></div>

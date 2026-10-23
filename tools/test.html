@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>body{margin:0;background:#111;display:flex;flex-wrap:wrap;gap:6px;padding:6px;font:12px sans-serif;color:#ccc}
+.c{display:flex;flex-direction:column;align-items:center}</style></head><body>
+<script type="module">
+import { mount, DEMOS } from '../src/ink.js';
+const q = new URLSearchParams(location.search), keys = q.get('k').split(','), T = +(q.get('t') || 6), files = (q.get('f') || '').split(',').filter(Boolean);
+const SP = await (await fetch('../data/spells.json')).json(); const by = Object.fromEntries(SP.map(s => [s.k, s]));
+for (const f of files) await import('../src/spells/' + f);
+window.errs = [];
+const ms = keys.map(k => { const d = document.createElement('div'); d.className = 'c'; const cv = document.createElement('canvas'); cv.width = +(q.get('w') || 480); cv.height = +(q.get('h') || 480); cv.style.width = (cv.width / 1.5) + 'px'; cv.style.height = (cv.height / 1.5) + 'px'; const h = document.createElement('div'); d.append(cv, h); const l = document.createElement('div'); l.textContent = k + ' ' + (by[k]?.n || '') + (DEMOS[k] ? '' : ' [缺]'); d.append(l); document.body.append(d); return mount(cv, k, by[k]?.realm || q.get('r') || 'tiandao', { seal: by[k]?.f?.slice(0, 2), hudEl: h }); });
+const t0 = performance.now();
+for (let t = 0; t <= T; t += 1 / 30) { ms.forEach(m => m.frame(t)); if (performance.now() - t0 > 50000) break; }
+window.done = 1;
+</script></body></html>

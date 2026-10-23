@@ -1,0 +1,15 @@
+{
+  "name": "immortality-skills",
+  "version": "0.1.0",
+  "private": true,
+  "description": "混沌法典：一百零三式修仙法术的实时科学可视化",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node tools/serve.mjs 8400",
+    "shot": "node tools/shot.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.48.0"
+  }
+}
