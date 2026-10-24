@@ -8,7 +8,8 @@
     "build": "node scripts/build.mjs",
     "serve": "node tools/serve.mjs 8400",
     "shot": "node tools/shot.mjs",
-    "record:segments": "node tools/record-segments.mjs"
+    "record:segments": "node tools/record-segments.mjs",
+    "render": "node tools/render-video.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.48.0"

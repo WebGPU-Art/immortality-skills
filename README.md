@@ -82,3 +82,16 @@ node tools/record-segments.mjs 5   # 某段失败时从第 5 段续录
 - `rsync_private_key`
 
 画面、文字与代码由 Claude 生成。
+
+## 离线渲染视频（推荐）
+
+不录屏：浏览器在后台按时间轴逐帧算出画面，截图送进 ffmpeg，配音按时间轴混成音轨，音画严格对齐，不会掉帧或定格。需要 Chrome 和 ffmpeg（`brew install ffmpeg`）。
+
+```bash
+npm install && node scripts/build.mjs
+LIMIT=8 node tools/render-video.mjs 0 0   # 试渲第 0 段前 8 秒
+node tools/render-video.mjs               # 全部 12 段 → recordings/NN_境界.mp4
+node tools/render-video.mjs 5             # 中断后从第 5 段续渲
+cd recordings && ls [0-9][0-9]_*.mp4 | sed "s/.*/file '&'/" > list.txt && ffmpeg -f concat -safe 0 -i list.txt -c copy 混沌法典.mp4
+```
+可选：`FPS=30`、`CRF=18`、`HEADFUL=1`（后台模式显卡不可用时）。

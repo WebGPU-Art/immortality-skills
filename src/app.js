@@ -193,6 +193,7 @@ const Recorder = (() => {
   // 分段录制：第 0 段 = 开场 + 炼气，之后每境一段，最后一段含收尾；每段在一次新开的页面里录，避免内存越积越多
   const SEGS = REALM_ORDER.map((rk, i) => { const a0 = i === 0 ? 0 : PAGES.findIndex(p => p.id === 'intro_' + rk), nx = REALM_ORDER[i + 1]; return [a0, nx ? PAGES.findIndex(p => p.id === 'intro_' + nx) : PAGES.length]; });
   let segEnd = PAGES.length, segMode = false;
+  let RENDER = false;
   let on = false, pi = 0, inst = null, tt = 0, phase = 'idle', phaseT = 0, au = null, dur = 0, enterAt = 0, cues = [], nextAu = null, endHold = 0;
 
   function splitCues(text) {
@@ -222,6 +223,7 @@ const Recorder = (() => {
     const t0 = pg.kind === 'spell' ? (T0[pg.s.k] || 0) : 0; tt = 0; while (tt < t0) { tt = Math.min(t0, tt + FF_DT); inst.frame(tt); }
     cues = splitCues(narr(pg.id));
     const a = audioOf(pg.id); dur = a ? a.dur : estDur(pg.id);
+    if (RENDER) { au = null; return; }
     au = a ? (nextAu && nextAu._id === pg.id ? nextAu : new Audio(a.src)) : null; if (au) { au._id = pg.id; au.preload = 'auto'; }
     // 预载下一页配音
     const nx = PAGES[pi + 1], na = nx && audioOf(nx.id); nextAu = na ? Object.assign(new Audio(na.src), { _id: nx.id, preload: 'auto' }) : null;
@@ -235,7 +237,7 @@ const Recorder = (() => {
   let last = performance.now();
   function tick(now) {
     const dt = Math.min(.1, (now - last) / 1000); last = now;
-    if (on && inst) {
+    if (on && inst && !RENDER) {
       tt += dt; inst.frame(tt); phaseT += dt;
       if (inst.hud) { const h = inst.hud(); if (hudE._t !== h) { hudE.textContent = h; hudE._t = h; } }
       if (phase === 'pre' && phaseT >= PRE) startAudio();
@@ -312,5 +314,52 @@ const Recorder = (() => {
   // #record 从头开始；#record-s_hopf 或 #record-intro_lianxu 从指定页开始（便于分段补录）
   if (location.hash.startsWith('#recseg-')) { const n = +location.hash.slice(8); [startAt, segEnd] = SEGS[n] || SEGS[0]; segMode = true; setTimeout(enter, 300); }
   else if (location.hash.startsWith('#record')) { const id = location.hash.slice(8); const i = PAGES.findIndex(p => p.id === id); startAt = i > 0 ? i : 0; setTimeout(enter, 300); }
+
+  // ---------- 离线逐帧渲染（tools/render-video.mjs 调用）----------
+  // 不用实时时钟、不播放声音：按配音时长排好整段时间轴，seek(t) 把画面、文字动画、字幕、黑场都算到时刻 t。
+  const VEIL = .38, FADE = .35, LEAD_IN = 1, END_FADE = 2.5;
+  const ease = x => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+  let PL = null, cur = -1, anims = [], base = 0;
+  function rInit(n, durs) {
+    RENDER = true; on = true; Theater.on = true; el.hidden = false; el.classList.add('rec'); document.body.style.overflow = 'hidden'; load.hidden = true;
+    size(); veil.style.transition = 'none'; sub.style.transition = 'none'; veil.style.opacity = 1; sub.style.opacity = 0;
+    const [a, b] = SEGS[n], last = b === PAGES.length; let t = n === 0 ? LEAD_IN : 0; const items = [];
+    for (let i = a; i < b; i++) {
+      const pg = PAGES[i], A = AUDIO[pg.id], d = (durs && durs[pg.id]) || (A ? A.d : estDur(pg.id));
+      const it = { i, m: t, d, end: t + PRE + d + Math.max(POST, MIN_TEXT - PRE - d) };
+      items.push(it); t = it.end + VEIL;
+    }
+    const lastEnd = items[items.length - 1].end, T = last ? lastEnd + LEAD_OUT + END_FADE + 1 : t;
+    PL = { items, T, last, lastEnd }; cur = -1;
+    return { T, audio: items.filter(it => AUDIO[PAGES[it.i].id]).map(it => ({ id: PAGES[it.i].id, f: AUDIO[PAGES[it.i].id].f, at: it.m + PRE })), pages: items.map(it => ({ id: PAGES[it.i].id, m: it.m })) };
+  }
+  function rSeek(t) {
+    let k = -1; PL.items.forEach((it, j) => { if (it.m <= t) k = j; });
+    let v = k < 0 ? 1 : 0;
+    if (k >= 0) {
+      const it = PL.items[k], pg = PAGES[it.i];
+      if (k !== cur) {
+        cur = k; pi = it.i; mountPage(pg); texts(pg); base = tt;
+        anims = [...tx.getAnimations({ subtree: true }), ...ttl.getAnimations({ subtree: true })]; anims.forEach(a => a.pause());
+        sub._s = null;
+      }
+      const tl = t - it.m, target = base + tl;
+      while (tt + FF_DT < target) { tt += FF_DT; inst.frame(tt); }
+      tt = target; inst.frame(tt);
+      anims.forEach(a => { a.currentTime = tl * 1000; });
+      if (inst.hud) { const h = inst.hud(); if (hudE._t !== h) { hudE.textContent = h; hudE._t = h; } }
+      // 字幕：说话时按进度选句，起止各淡入淡出 0.35 秒
+      const u = Math.min(.9999, Math.max(0, (tl - PRE) / it.d)), c = cues.find(c => u >= c.a && u < c.b) || cues[cues.length - 1], s = c ? c.s : '';
+      if (sub._s !== s) { sub._s = s; sub.textContent = s; }
+      sub.style.opacity = tl < PRE ? 0 : tl < PRE + it.d ? ease((tl - PRE) / FADE) : 1 - ease((tl - PRE - it.d) / FADE);
+      // 黑场：挂载后淡出；本页结束后淡入（下一页在黑场中挂载）；全片最后慢慢落幕
+      v = 1 - ease(tl / FADE);
+      if (t >= it.end && !(PL.last && k === PL.items.length - 1)) v = Math.max(v, ease((t - it.end) / FADE));
+      if (PL.last && t >= PL.lastEnd + LEAD_OUT) v = Math.max(v, ease((t - PL.lastEnd - LEAD_OUT) / END_FADE));
+    }
+    veil.style.opacity = v;
+    return k;
+  }
+  window.__R = { init: rInit, seek: rSeek, SEGS, names: REALM_ORDER.map(rk => REALMS[rk].n) };
   return { enter, PAGES, SEGS };
 })();
