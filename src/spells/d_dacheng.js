@@ -461,35 +461,45 @@ reg('spinglass', c => {
   } };
 }, { full: true });
 
-// ================= 微扰惑识：784 维线性神识 =================
-reg('adv', c => {
-  const { g, P, fx, R } = c, D = 28, sky = makeSky(fx), SZ = 1.8;
-  const glyph = (draw) => { const cv = document.createElement('canvas'); cv.width = cv.height = 280; const q = cv.getContext('2d'); q.lineCap = 'round'; q.lineJoin = 'round'; q.strokeStyle = '#000'; draw(q); const sm_ = document.createElement('canvas'); sm_.width = sm_.height = D; const s2 = sm_.getContext('2d'); s2.drawImage(cv, 0, 0, D, D); const d = s2.getImageData(0, 0, D, D).data, a = new Float32Array(D * D); for (let i = 0; i < D * D; i++) a[i] = d[i * 4 + 3] / 255; return a; };
-  const shan = glyph(q => { q.lineWidth = 30; q.beginPath(); q.moveTo(140, 50); q.lineTo(140, 225); q.moveTo(60, 110); q.lineTo(60, 225); q.lineTo(220, 225); q.lineTo(220, 110); q.stroke(); });
-  const shui = glyph(q => { q.lineWidth = 26; q.beginPath(); q.moveTo(140, 40); q.lineTo(140, 230); q.lineTo(115, 215); q.moveTo(50, 105); q.lineTo(105, 105); q.lineTo(55, 200); q.moveTo(230, 80); q.lineTo(165, 140); q.moveTo(165, 130); q.lineTo(235, 225); q.stroke(); });
-  const w = new Float32Array(D * D); let bias = 0;
-  for (let tries = 0; tries < 20; tries++) { for (let i = 0; i < D * D; i++) w[i] = (shan[i] - shui[i]) + fx.gauss(R) * 2.5; bias = 0; for (let i = 0; i < D * D; i++) bias -= w[i] * (shan[i] + shui[i]) / 2; let s_ = bias; for (let i = 0; i < D * D; i++) s_ += w[i] * shan[i]; if (s_ > 8) break; }
-  const score = x => { let s = bias; for (let i = 0; i < D * D; i++) s += w[i] * x[i]; return s; };
-  const s0 = score(shan); let l1 = 0; for (let i = 0; i < D * D; i++) l1 += Math.abs(w[i]); const epsStar = s0 / l1;
-  const x = new Float32Array(D * D), dl = new Float32Array(D * D), gold = hx(P.c1), ink = hx(P.ink), blue = hx(P.c2);
+// ================= 天衍圆阵：阿波罗型圆堆积——平移折叠 + 圆反演迭代（iq 型阿波罗分形），
+// 外加一道游走的反演圆：反演中心掠过之处，圆阵内外翻转，如一剑横扫；每轮层层生圆，新生一层描金 =================
+reg('apollo', c => {
+  const { g, P, fx } = c;
+  const draw = fx.shaderWH('dc5_apollo', fx.GLSL + `uniform float OFU,S,NI,ZM,ANG,IR,GL;uniform vec2 IC;
+  float apo(vec2 p,float s,out float gen,out float sc){ sc=1.; gen=0.;
+    for(int i=0;i<10;i++){ if(float(i)>=NI)break; p=-1.+2.*fract(.5*p+.5); float r2=dot(p,p); float k=s/r2; p*=k; sc*=k; gen+=1.; }
+    return .25*abs(p.y)/sc; }
+  void main(){
+    vec2 uv=(gl_FragCoord.xy-.5*R)/R.y; uv.x-=OFU;
+    vec2 w=uv-IC; float l2=max(dot(w,w),1e-6);
+    vec2 z=IC+IR*IR*w/l2; float jac=IR*IR/l2;                     // 圆反演：z → c + r²(z−c)/|z−c|²
+    z=(z*rot(ANG))*ZM;
+    float gen,sc; float d=apo(z,S,gen,sc);
+    float dl=d/(ZM*jac);                                          // 换回屏幕尺度
+    float px=1./R.y;
+    float ink=exp(-dl/(px*.7))*.75*pow(.68,max(gen-1.,0.));         // 墨线（越深的层越淡）
+    float newest=step(NI-.5,gen);                                 // 最新一层
+    float gold=newest*exp(-dl/(px*.9))*GL*.6;
+    float wash=.035*mod(gen,2.)*smoothstep(0.,px*30.,dl);         // 淡墨晕：隔层一染
+    float ring=exp(-abs(sqrt(l2)-IR)/(px*2.))*.55;                // 反演圆本身：一道金弧
+    vec3 col=mix(INK,C1,clamp(gold+ring,0.,1.));
+    float a=clamp(max(max(ink,gold*1.2),max(wash,ring)),0.,1.);
+    gl_FragColor=vec4(col,a);
+  }`, { res: .75 });
+  const PER = 9;
   return { step(t) {
-    const { W, H } = c, ct = t % 13, eps = epsStar * 1.25 * sm((ct - 2) / 3), mag = ct > 8.5 ? 1 + 24 * sm((ct - 8.5) / 1.5) * (1 - sm((ct - 12) / 1)) : 1;
-    for (let i = 0; i < D * D; i++) { dl[i] = -eps * Math.sign(w[i]); x[i] = shan[i] + dl[i] * mag; }
-    const sc = score(Float32Array.from(shan, (v, i) => v + dl[i])), pShan = 1 / (1 + Math.exp(-sc * 1.2));
-    const mesh = gridMesh(D - 1, D - 1, (u, v) => { const i = Math.round(v * (D - 1)) * D + Math.round(u * (D - 1)); return [(u * 2 - 1) * SZ, (shan[i] + dl[i] * mag * .3) * .8 - .4, (v * 2 - 1) * SZ]; },
-      (u, v) => { const i = Math.round(v * (D - 1)) * D + Math.round(u * (D - 1)); const k = Math.min(1, shan[i]); const d = Math.min(1, Math.abs(dl[i]) * mag * 3); const base = [0, 1, 2].map(j => PORC[j] * (1 - k) + ink[j] * k); const pc = dl[i] < 0 ? gold : blue; return [0, 1, 2].map(j => base[j] * (1 - d * .7) + pc[j] * d * .7).concat([1]); });
-    // 镜头：从正上方俯瞰（像神识读字），俯冲到字的笔画间低空掠过
-    const cam = tour(t, { at: [0, -.3, .1], r: [2.2, 1.0], h: [1.5, 4.6], period: 18, th0: 1.57, turns: .5, fov: [58, 46], wob: .4 });
-    g.clearRect(0, 0, W, H); drawSky(sky, g, W, H, t, P, cam, { cy: -1.4 });
-    MG.begin(W, H, cam);
-    MG.tris(mesh.P, mesh.N, mesh.C, mesh.I, { gold: P.c1, rim: .6 });
-    const [gl_, gc] = gridLines(mesh, 1, [.08, .07, .05, .12]); MG.lines(gl_, gc);
-    MG.blit(g);
-    // 神识判读条（右上）
-    const bw = Math.min(W * .4, H * .7), bx = W - bw - H * .07, by = H * .07, bh = H * .022;
-    g.save(); g.fillStyle = fx.rgba(P.ink, .12); g.fillRect(bx, by, bw, bh); g.fillStyle = P.ink; g.fillRect(bx, by, bw * pShan, bh); g.fillStyle = P.c2; g.fillRect(bx + bw * pShan, by, bw * (1 - pShan), bh); g.restore();
-    fx.text(g, '山', bx - H * .03, by + bh / 2, { c: P.ink, size: H * .045, font: '"Ma Shan Zheng",serif' }); fx.text(g, '水', bx + bw + H * .03, by + bh / 2, { c: P.c2, size: H * .045, font: '"Ma Shan Zheng",serif' });
-    c.hud(mag > 1.5 ? `扰动放大 ${mag.toFixed(0)} 倍给你看：正是 sign(w) 的纹理` : `784 维 · 每像素只改 ${eps.toFixed(3)} · 神识判为「${pShan > .5 ? '山' : '水'}」(${(Math.max(pShan, 1 - pShan) * 100).toFixed(0)}%)`);
+    const { W, H } = c, asp = W / H, OFU = W > H * 1.2 ? .1 * asp : 0;
+    const k = Math.floor(t / PER), ph = (t % PER) / PER;
+    // 层层生圆：每轮从一层长到六层
+    const NI = 1 + Math.min(5, Math.floor(ph * 9));
+    // 一剑横扫：每轮后段，反演中心从画面一侧急掠到另一侧
+    // 一剑横扫：每轮后段，反演中心绕画心急转一周（圆内圆外随之翻转，如剑光扫过）；平时缓缓游走
+    const sw = sm((ph - .6) / .25), dir = k % 2 ? -1 : 1, th = dir * (sw * Math.PI * 2) + k * 1.7 + t * .12;
+    const rr = .22 + .12 * Math.sin(t * .37), ICx = rr * Math.cos(th), ICy = rr * Math.sin(th);
+    const IR = .36 + .06 * Math.sin(t * .4);
+    const S = 1.18 + .07 * Math.sin(t * .17 + k * .9);
+    draw(g, W, H, t, P, { OFU, S, NI, ZM: 1.35 + .25 * Math.sin(t * .11), ANG: t * .05 + k * .7, IR, GL: .7 + .3 * Math.sin(t * 3), IC: [ICx, ICy] });
+    c.hud(`圆反演 z→c+r²(z−c)/|z−c|² 与折叠迭代 · 第 ${NI} 层 · 反演参数 s=${S.toFixed(3)}`);
   } };
 }, { full: true });
 

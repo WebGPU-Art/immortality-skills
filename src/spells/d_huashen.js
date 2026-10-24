@@ -339,34 +339,67 @@ reg('flock', c => {
   } };
 }, { full: true });
 
-// ================= 群感蛊：三维蛊群的群体感应（扩散稳态浓度过阈值，由内向外同时发光），镜头钻入蛊海 =================
-reg('quorum', c => {
-  const { g, P, R, fx } = c, NM = 14000, X = new Float32Array(NM * 3), rr = new Float32Array(NM), lum = new Float32Array(NM);
-  const tmp = []; for (let i = 0; i < NM; i++) { let x, y, z; do { x = R() * 2 - 1; y = R() * 2 - 1; z = R() * 2 - 1; } while (x * x + y * y + z * z > 1); tmp.push([Math.hypot(x, y, z), x, y, z]); }
-  tmp.sort((a, b) => a[0] - b[0]); tmp.forEach((q, i) => { rr[i] = q[0]; X[i * 3] = q[1]; X[i * 3 + 1] = q[2]; X[i * 3 + 2] = q[3]; });
-  const bg = sky(c, 'hs3_sky_qu'), pc = camPts(c, 'hs3_qu'), pl = camPts(c, 'hs3_qu_l', true), B = Buf(NM + 10);
-  const C1 = c3(fx, P.c1), C2 = c3(fx, P.c2), IN = c3(fx, P.ink), AC = c3(fx, P.acc);
-  // 宿主经络：十二道经线 + 赤道
-  const host = []; for (let k = 0; k < 12; k++) { const ph = k / 12 * Math.PI; for (let i = 0; i < 64; i++) { const a0 = i / 64 * TAU, a1 = (i + 1) / 64 * TAU; for (const a_ of [a0, a1]) host.push(Math.cos(a_) * Math.cos(ph) * 1.12, Math.sin(a_) * 1.12, Math.cos(a_) * Math.sin(ph) * 1.12, 0, ...C1, .1); } }
-  const HB = { d: new Float32Array(host), n: host.length / 8 };
-  const theta = 1, kap = theta / (3 * .5 * .5); let last = 0; const PER = 13;
+// ================= 万花剑域：万花筒迭代函数系统（KIFS）——反复的绝对值折叠、排序、旋转、二倍缩放；
+// 沿纵轴重复成一条无尽剑廊，镜头在廊中疾行；每隔数息折叠角骤转一次，满廊剑刃随之横扫 =================
+reg('kifs', c => {
+  const { g, P, fx } = c;
+  const draw = fx.shaderWH('hs5_kifs', fx.GLSL + `uniform float OFU,A1,A2,SW,FL;uniform vec3 CP,CF,CR,CU;
+  vec3 TR;
+  float de(vec3 p){
+    p.z=mod(p.z+2.,4.)-2.;
+    vec3 q=p*.45;  // 整座剑阵缩到 0.45，再按每 4 单位沿纵轴重复
+    float s=1.; float trap=1e3;
+    for(int i=0;i<5;i++){
+      q=abs(q);
+      if(q.x<q.y)q.xy=q.yx; if(q.x<q.z)q.xz=q.zx; if(q.y<q.z)q.yz=q.zy;   // 排序：落入一个基本区域（万花筒）
+      q.xy*=rot(A1); q.xz*=rot(A2);
+      q.xy=q.xy*3.-2.; q.z*=3.; if(q.z>1.)q.z-=2.;                         // 三倍缩放 + 平移（门格型 KIFS）
+      s*=3.; trap=min(trap,length(q.yz)*.4);
+    }
+    TR=vec3(trap,0.,0.);
+    vec3 b=abs(q)-vec3(1.); float d=(min(max(b.x,max(b.y,b.z)),0.)+length(max(b,0.)))/s/.45;
+    d=max(d,.8-length(p.xy));                                            // 掏出剑廊，镜头才能穿行
+    return d;
+  }
+  void main(){
+    vec2 uv=(gl_FragCoord.xy-.5*R)/R.y; uv.x-=OFU;
+    vec3 rd=normalize(uv.x*CR+uv.y*CU+1.1*CF), ro=CP;
+    float t=.02, glw=0.; float it=0.; vec3 col=vec3(0.);
+    for(int i=0;i<110;i++){ vec3 p=ro+rd*t; float d=de(p); glw+=exp(-d*140.)*.004; it=float(i); if(d<.0025*t+.0004||t>14.)break; t+=d; }
+    float trap=TR.x;
+    vec3 sky=vec3(.006,.008,.03);
+    if(t<14.){
+      vec3 p=ro+rd*t; vec2 e=vec2(.0015*t,0.);
+      vec3 n=normalize(vec3(de(p+e.xyy)-de(p-e.xyy),de(p+e.yxy)-de(p-e.yxy),de(p+e.yyx)-de(p-e.yyx)));
+      de(p); trap=TR.x;
+      float ao=.25+.75*pow(clamp(1.-it/130.,0.,1.),1.5);
+      float dif=clamp(dot(n,-rd)*.5+dot(n,normalize(vec3(.3,.8,-.5)))*.3,0.,1.), rim=pow(1.-abs(dot(n,rd)),4.);
+      vec3 base=mix(vec3(.015,.02,.06),C1*.35,clamp(trap*.9,0.,1.));
+      float vein=1.-smoothstep(0.,.05,abs(fract(trap*14.-T*.6)-.5)-.44);       // 桃红剑纹沿陷阱值流动
+      float fog=exp(-t*.42);
+      float d2=clamp(dot(n,normalize(vec3(-.4,-.6,.6))),0.,1.);
+      col=(base*(.05+.6*dif)*ao*ao + pow(dif,10.)*INK*.6*ao + C2*d2*.3*ao + rim*C1*.25*ao + C2*vein*1.5*ao)*fog*.8;
+      col+=ACC*SW*rim*2.*fog;                                              // 横扫时刃口泛金
+      col=mix(sky,col,fog*.9+.1);
+    } else col=sky;
+    col+=glw*mix(C1,C2,.35)*(1.+3.*SW);
+    col+=FL*vec3(.55,.6,1.)*.18;
+    col=col/(1.+col*.6);
+    gl_FragColor=vec4(pow(col,vec3(.95)),1.);
+  }`, { res: .5 });
+  const PER = 5.2;  // 一记剑招的周期
   return { step(t) {
-    const tc = t % PER, dt = Math.max(0, Math.min(.1, t - last)); last = t; if (tc < .05) lum.fill(0);
-    const n = Math.min(NM, Math.floor(Math.pow(2, Math.min(13.78, 8 + tc / .95)))), Rb = Math.cbrt(n / NM);
-    B.reset(); let on = 0;
-    for (let i = 0; i < n; i++) { const r = rr[i], cval = kap * (3 * Rb * Rb - r * r); const tgt = cval > theta ? 1 : 0; lum[i] += (tgt - lum[i]) * Math.min(1, dt * 2.5); if (lum[i] > .5) on++;
-      const L = lum[i], hot = L > .7 ? AC : C2, col = [C1[0] * (1 - L) + hot[0] * L, C1[1] * (1 - L) + hot[1] * L, C1[2] * (1 - L) + hot[2] * L];
-      B.push(X[i * 3], X[i * 3 + 1], X[i * 3 + 2], 0, col[0], col[1], col[2], .2 + 1.1 * L); }
-    // 镜头：随蛊群长大逐渐逼近，发作时钻入中心向外看
-    const ph = tc / PER, dive = sm((ph - .45) / .45), ang = t * .2;
-    const rad = 3.0 - 2.75 * dive, pos = [Math.cos(ang) * rad, .5 - .4 * dive, Math.sin(ang) * rad];
-    const tgt = dive > .9 ? [Math.cos(ang + 1.6) * .8, 0, Math.sin(ang + 1.6) * .8] : [0, 0, 0];
-    const cam = look(pos, mixv([0, 0, 0], tgt, sm((dive - .7) / .3)));
-    bg(g, yawOf(cam), pitchOf(cam));
-    drawCam(pl, c, t, HB, cam, { fog: .2 });
-    const ctr = projCam(c, cam, [0, 0, 0]); if (ctr) fx.spark(g, ctr[0], ctr[1], c.S * (.2 + .5 * Rb) / Math.max(.6, ctr[2] * .4), P.c2, Math.min(.45, .08 + on / n * .4));
-    drawCam(pc, c, t, B, cam, { size: 2.8, fog: .3 });
-    c.hud(`蛊数 ${n} · 中心信号 ${(kap * 3 * Rb * Rb / theta).toFixed(2)}×阈值 · 已发作 ${(on / n * 100).toFixed(0)}%`);
+    const OFU = c.W > c.H * 1.2 ? .07 * c.W / c.H : 0;
+    // 剑招：每个周期末段折叠角急转（缓入急出），满廊剑刃一齐横扫
+    const k = Math.floor(t / PER), ph = (t % PER) / PER, sw = sm((ph - .62) / .3);
+    const flash = Math.max(0, 1 - Math.abs(ph - .78) / .12);
+    const A1 = -.06 + .09 * Math.cos(Math.PI * (k + sw)), A2 = .08 + .04 * Math.sin((k + sw) * 1.3);  // 折角往返：一来一回两剑（五重折叠把小角度放大成满廊剑刃的大幅转动）
+    // 镜头：沿剑廊疾行，略作螺旋，横扫时随刃侧倾
+    const z = t * 1.15, roll = .5 * Math.sin(t * .23) + .6 * (sw - .5) * (k % 2 ? 1 : -1);
+    const pos = [.22 * Math.sin(t * .31), .18 * Math.cos(t * .27), z], ahead = [.22 * Math.sin((t + .8) * .31), .18 * Math.cos((t + .8) * .27), z + 1];
+    const cam = look(pos, ahead, norm([Math.sin(roll), Math.cos(roll), 0]));
+    draw(g, c.W, c.H, t, P, { OFU, A1, A2, SW: flash, FL: flash * .6, CP: cam.CP, CF: cam.CF, CR: cam.CR, CU: cam.CU });
+    c.hud(`万花筒迭代函数系统 · 折叠五重、每重缩放三倍 · 折角 ${(A1 * 57.3).toFixed(0)}° · 剑廊 ${(z / 4).toFixed(0)} 进`);
   } };
 }, { full: true });
 
@@ -538,7 +571,7 @@ reg('warp', c => {
       float side=step(0.,gv);                                                // 两座互不相通的迷宫
       vec3 c=mix(C1*1.2,C2*1.1,side)+INK*pow(exp(-abs(gv)*16.),8.)*.7;
       float seam=exp(-abs(sv)*22.)*exp(-abs(gv)*14.);                          // 与施瓦茨 P 曲面相交的金线
-      float fog=exp(-t*.3);
+      float fog=exp(-t*.42);
       col+=tr*(c*sheet*.2+ACC*seam*.9)*fog;
       tr*=1.-sheet*.06;
     }

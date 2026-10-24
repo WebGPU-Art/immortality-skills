@@ -322,30 +322,54 @@ reg('byzantine', c => {
 }, { full: true });
 
 // ======================================================================
-// 以直报怨：22³ 宗门格点上的重复囚徒困境；镜头穿入剖开的方阵内部
+// 雷池宝珠：三维阿波罗球堆积。空间按格折叠 p ← 2·fract(p/2+1/2) − 1，再作球反演 p ← s·p/|p|²，迭代八次，
+// 球中生球、无穷嵌套。每落一道劫雷，反演强度 s 骤增又回落——整片珠海向内一收、向外一翻，如长剑横扫。
+// 镜头在珠海的缝隙里穿行，雷光照亮褶缝。
 // ======================================================================
-reg('tft', c => {
-  const { g, P, R, fx } = c, L = 22, N = L * L * L, E = setup(c, 'tft');
-  const A = [[30, 0, 30, 15], [50, 10, 14, 30], [30, 9, 30, 22.5], [40, 5, 22.5, 22.5]];
-  const s = new Uint8Array(N), s2 = new Uint8Array(N), sc = new Float32Array(N), nb = new Int32Array(N * 6), D = new Float32Array(N * 8), age = new Float32Array(N), XYZ = new Float32Array(N * 3);
-  for (let z = 0; z < L; z++) for (let y = 0; y < L; y++) for (let x = 0; x < L; x++) { const i = (z * L + y) * L + x, w = v => (v + L) % L; [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].forEach(([a, b, cc], k) => nb[i * 6 + k] = (w(z + cc) * L + w(y + b)) * L + w(x + a)); XYZ[i * 3] = (x - L / 2 + .5) / (L / 2); XYZ[i * 3 + 1] = (y - L / 2 + .5) / (L / 2) * .9 - .1; XYZ[i * 3 + 2] = (z - L / 2 + .5) / (L / 2); }
-  const cols = [h3(P.c1), h3(P.acc), h3(P.c2), [.55, .55, .6]]; let cyc = -1, lastU = 0, gen = 0;
+reg('apollo3d', c => {
+  const { g, P, fx } = c, E = setup(c, 'apollo3d');
+  const draw = fx.shaderWH('dj5_apollo3d', fx.GLSL + CAMGL + `uniform float SS,FL,TW; uniform vec3 FLP;
+  float DE(vec3 p, out vec4 orb){ float sc=1.; orb=vec4(1e9);
+    p.xz*=rot(TW*.15);
+    for(int i=0;i<8;i++){ p=-1.+2.*fract(.5*p+.5); float r2=dot(p,p); orb=min(orb,vec4(abs(p),r2)); float k=SS/r2; p*=k; sc*=k; }
+    return .25*abs(p.y)/sc; }
+  void main(){ vec3 rd=rayDir(), ro=EYE; float tt=.01; vec4 orb; float glow=0.; bool hit=false; int st=0;
+    for(int i=0;i<120;i++){ vec3 p=ro+rd*tt; float d=DE(p,orb); glow+=exp(-d*90.); if(d<.00035*tt+.0002){hit=true;break;} tt+=d*.95; st=i; if(tt>9.) break; }
+    float n=fbm3(rd*2.5+vec3(T*.03,0.,0.)); vec3 bg=mix(vec3(.01,.008,.02),C1*.12,smoothstep(.35,.85,n))+INK*FL*.06;
+    vec3 col=bg;
+    if(hit){ vec3 p=ro+rd*tt; float e=.0006*tt+.0002; vec4 o1;
+      vec3 nr=normalize(vec3(DE(p+vec3(e,0,0),o1)-DE(p-vec3(e,0,0),o1),DE(p+vec3(0,e,0),o1)-DE(p-vec3(0,e,0),o1),DE(p+vec3(0,0,e),o1)-DE(p-vec3(0,0,e),o1)));
+      DE(p,orb); float ao=pow(clamp(1.-float(st)/120.,0.,1.),1.1)*(.35+.65*clamp(orb.w*2.5,0.,1.));
+      vec3 L=normalize(FLP-p); float dl=length(FLP-p); float dif=max(dot(nr,L),0.); float amb=.5+.5*nr.y;
+      vec3 K=normalize(vec3(.4,.9,-.2)); float key=max(dot(nr,K),0.); float fr=pow(1.-max(dot(nr,-rd),0.),3.);
+      // 轨道陷阱着色：外层紫、芯层青、近反演中心处赤红
+      vec3 base=mix(C1*.75,C2*.8,clamp(orb.y*1.6,0.,1.)); base=mix(base,ACC,clamp(1.-orb.w*4.,0.,1.)*.55); base=mix(base,INK*.9,clamp(orb.z*orb.z*1.2,0.,1.)*.25);
+      float flash=FL*2.6/(1.+dl*dl*1.5);
+      col=base*(.14*amb+.95*key+flash*dif)*ao + C2*fr*.35*ao + INK*pow(max(dot(reflect(rd,nr),K),0.),32.)*(.45+flash)*ao;
+      float crease=exp(-orb.w*14.); col+=mix(C1,INK,.5)*crease*(.12+1.6*FL)*ao;              // 褶缝雷光
+      col=mix(col,bg,1.-exp(-tt*tt*.035)); }
+    col+=mix(C1,C2,.5)*glow*.006*(1.+3.*FL);
+    col=col/(1.+col*.5); gl_FragColor=vec4(pow(col,vec3(.95)),1.); }`, { res: c.theater ? .5 : .6 });
+  let lastK = -1, bolt = 0;
   return { step(t) {
-    const ci = Math.floor(t / 20); if (ci !== cyc) { cyc = ci; for (let i = 0; i < N; i++) { const r = R(); s[i] = r < .04 ? 2 : r < .36 ? 0 : r < .68 ? 1 : 3; } gen = 0; lastU = t; }
-    while (t - lastU > .3) { lastU += .3; gen++;
-      for (let i = 0; i < N; i++) { let v = 0; for (let k = 0; k < 6; k++) v += A[s[i]][s[nb[i * 6 + k]]]; sc[i] = v; }
-      for (let i = 0; i < N; i++) { let b = s[i], bv = sc[i]; for (let k = 0; k < 6; k++) { const j = nb[i * 6 + k]; if (sc[j] > bv) { bv = sc[j]; b = s[j]; } } if (R() < .006) b = Math.floor(R() * 4); s2[i] = b; }
-      for (let i = 0; i < N; i++) { if (s2[i] !== s[i]) age[i] = 1; s[i] = s2[i]; } }
-    const tr = tour(t, { per: 20, r: 2.18, rn: .95, h: .2, top: 3.4, a0: .4, bob: .35, fov: 1.5 });
-    sky(c, E, tr, t, { Y0: 1.7, target: [0, .85, 0], seed: 2.3, period: 3.4 });
-    const cnt = [0, 0, 0, 0], cut = Math.floor(t / 5) % 4; // 剖面轮换：切角 / 半侧 / 顶层 / 中空
-    for (let i = 0; i < N; i++) { const o = i * 8, st = s[i]; cnt[st]++; const x = XYZ[i * 3], y = XYZ[i * 3 + 1], z = XYZ[i * 3 + 2];
-      D[o] = x; D[o + 1] = y; D[o + 2] = z; const hide = cut === 0 ? (x > 0 && y > -.1 && z > 0) : cut === 1 ? (x > 0 && z < 0) : cut === 2 ? (y > .15) : (x * x + y * y + z * z < .5);
-      const col = cols[st], fl = age[i]; age[i] *= .85; D[o + 4] = col[0] + fl * .6; D[o + 5] = col[1] + fl * .6; D[o + 6] = col[2] + fl * .6; D[o + 7] = hide ? 0 : (st === 2 ? 1.0 : st === 1 ? 1.15 : .6) + fl; }
-    E.pts.draw(g, c.W, t, P, D, { W: c.W, H: c.H, size: 6, uniforms: camU(tr.cam) });
-    const bw = c.S * .5, bx = c.W - bw - c.S * .04, by = c.S * .06; let x0 = bx;
-    ['恒善', '恒恶', '以直报怨', '随机'].forEach((nm, k) => { const w = cnt[k] / N * bw; g.fillStyle = fx.rgba([cols[k][0] * 255, cols[k][1] * 255, cols[k][2] * 255], .9); g.fillRect(x0, by, w, c.S * .018); if (w > c.S * .07) fx.text(g, nm, x0 + w / 2, by + c.S * .045, { size: c.S * .022, c: P.ink, a: .8 }); x0 += w; });
-    c.hud(`第 ${gen} 代 · 以直报怨 ${(cnt[2] / N * 100).toFixed(0)}% · 恒恶 ${(cnt[1] / N * 100).toFixed(0)}% · 恒善 ${(cnt[0] / N * 100).toFixed(0)}%`);
+    // 镜头：在珠海缝隙里沿一条平滑闭曲线穿行（iq 式环绕轨道）
+    const eye = [2.6 * Math.cos(.1 + .23 * t), .4 + .25 * Math.cos(.31 * t), 2.6 * Math.cos(.5 + .27 * t)];
+    const tgt = [1.7 * Math.cos(1.2 + .29 * t), .4 + .1 * Math.cos(.21 * t), 1.7 * Math.cos(2. + .26 * t)];
+    const cam = camera(eye, tgt, 1.55);
+    // 劫雷节律：每道雷落下，反演强度骤增（快升慢落）→ 珠海整体一翻，像一剑扫过
+    const f = flashAt(t, 4.3, 3.2), k = f.k, ph = t - k * 3.2;
+    const kick = f.f > .02 ? Math.exp(-Math.max(0, ph - 3.2 * (.15)) * .9) : 0;
+    const ss = 1.12 + .08 * Math.sin(t * .23) + .28 * Math.min(1, kick) * (f.f > 0 ? 1 : 0);
+    const fp = [eye[0] + Math.cos(f.x * TAU) * .8, eye[1] + .6, eye[2] + Math.sin(f.x * TAU) * .8];
+    draw(g, c.W, c.H, t, P, Object.assign({ SS: ss, FL: f.f, TW: t, FLP: fp }, camU(cam)));
+    // 落雷线：从镜头前上方劈向珠海深处
+    if (f.f > .15) {
+      if (k !== lastK) { lastK = k; bolt = k; }
+      const fwd = cam.CZ, a = [fp[0], fp[1] + .3, fp[2]], b = [eye[0] + fwd[0] * 2.2, eye[1] + fwd[1] * 2.2 - .5, eye[2] + fwd[2] * 2.2];
+      const n = boltBuf(bolt3(bolt * 17 + 5, a, b, 5), E.BL, 0, lerp3(h3(P.ink), h3(P.c1), .3), f.f);
+      if (n) E.lns.draw(g, c.W, t, P, E.BL, { W: c.W, H: c.H, n, uniforms: camU(cam) });
+    }
+    c.hud(`阿波罗球堆积 · 格折叠 + 球反演 p ← s·p/|p|² · 反演强度 s = ${ss.toFixed(3)} · 珠中生珠，第八重`);
   } };
 }, { full: true });
 

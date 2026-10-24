@@ -155,23 +155,33 @@ reg('gabriel', c => {
   } };
 });
 
-reg('ratchet', c => {
-  const { g, S, P, R, fx } = c, Np = 260, L = S * .16, aF = .2, D = S * S * .0025; let X = [], sim = 0, x0 = [];
-  for (let i = 0; i < Np; i++) { const x = Math.floor(R() * 6) * L + (R() - .5) * L * .05; X.push(x); x0.push(x); }
-  const V = x => { const u = ((x % L) + L) % L / L; return u < aF ? u / aF : (1 - u) / (1 - aF); }, dV = x => { const u = ((x % L) + L) % L / L; return u < aF ? 1 / (aF * L) : -1 / ((1 - aF) * L); };
+// 金轮千叶：茱莉亚集 z ← z² + c，c 沿主心形线边界 c = e^{iθ}/2 − e^{2iθ}/4 绕行（略收在内侧，集合保持连通）。
+// 每轮一次把 c 推出边界：金轮碎成康托尔金屑，再收回，重新长成千叶
+reg('juliawheel', c => {
+  const { g, P, fx } = c;
+  const draw = fx.shaderWH('juliawheel_v5', fx.GLSL + `uniform vec2 C; uniform float SPIN, ZM;
+  void main(){ vec2 uv=(gl_FragCoord.xy-.5*R)/R.y; uv.x-=R.x>R.y*1.2?.28:0.; uv*=rot(SPIN); float pix=ZM/R.y;
+    vec2 z=uv*ZM; vec2 dz=vec2(1.,0.); float tr=1e3, tr2=1e3, n=0.;
+    for(int i=0;i<180;i++){ dz=2.*vec2(z.x*dz.x-z.y*dz.y, z.x*dz.y+z.y*dz.x); z=vec2(z.x*z.x-z.y*z.y,2.*z.x*z.y)+C;
+      tr=min(tr,length(z)); tr2=min(tr2,abs(z.x*z.y)); if(dot(z,z)>1e4) break; n+=1.; }
+    vec3 col;
+    if(n>=180.){ float p=pow(clamp(1.-tr2*5.,0.,1.),4.); float ring=.5+.5*cos(tr*38.-T*3.);
+      col=mix(vec3(.06,.035,.01), C1*1.1, p)*(.45+.55*ring); }
+    else { float r=length(z); float de=.5*r*log(r)/max(length(dz),1e-9);
+      float edge=exp(-de/(pix*1.6)); float halo=exp(-de/(pix*30.));
+      col=C1*edge*1.5+C2*halo*.35+vec3(1.,.9,.6)*pow(edge,4.)*.6; }
+    col*=smoothstep(1.35,.25,length(uv));
+    gl_FragColor=vec4(col,1.); }`, { res: c.theater ? .6 : .85 });
   return { step(t) {
-    const on = (t % 1.2) < .7;
-    while (sim < t) { const h = 1 / 120; sim += h; for (let i = 0; i < Np; i++) { X[i] += (on ? -dV(X[i]) * S * S * .04 : 0) * h + Math.sqrt(2 * D * h) * fx.gauss(R); } }
-    fx.clear(g, S); const y0 = S * .62, A = S * .2;
-    // 锯齿势（阵纹）
-    const pts = []; for (let i = 0; i <= 200; i++) { const x = i / 200 * S; pts.push([x, y0 - V(x) * A]); }
-    add(g, () => fx.poly(g, pts, P.c1, on ? 3 : 1, on ? .9 : .25));
-    // 灵气粒子：显示在 [0,S) 内，纵向按势能
-    add(g, () => { for (let i = 0; i < Np; i++) { const x = ((X[i] % S) + S) % S; fx.spark(g, x, y0 - V(X[i]) * A - S * .01 - (i % 7) * 1.5, S * .014, i % 5 ? P.c2 : P.ink, .8); } });
-    // 丹炉（右侧）
-    fx.circle(g, S * .9, S * .25, S * .06, { c: P.c1, w: 3, a: .8 }); add(g, () => fx.spark(g, S * .9, S * .25, S * .1, P.acc, .5 + .3 * Math.sin(t * 3)));
-    let drift = 0; for (let i = 0; i < Np; i++) drift += X[i] - x0[i]; drift /= Np * L;
-    add(g, () => { for (let k = 0; k < 4; k++) { const x = ((t * S * .08 + k * S * .25) % S); fx.line(g, x, S * .85, x + S * .05, S * .85, P.c1, 2, .5); } });
-    c.hud(`阵纹${on ? '开' : '合'} · 净流动 ${drift.toFixed(2)} 齿（向右）`);
+    const W = c.W, H = c.H; g.clearRect(0, 0, W, H);
+    const th = t * .23 + 1.1, T = 9, ph = (t % T) / T;
+    const burst = ph > .72 ? Math.sin(Math.PI * (ph - .72) / .28) : 0;   // 出界一刹
+    const s = .965 + .09 * burst;
+    const cx = (Math.cos(th) / 2 - Math.cos(2 * th) / 4) * s, cy = (Math.sin(th) / 2 - Math.sin(2 * th) / 4) * s;
+    draw(g, W, H, t, P, { C: [cx, cy], SPIN: t * .35, ZM: 2.9 - .25 * Math.sin(t * .4) });
+    // 金屑余烬
+    const N = 26; for (let i = 0; i < N; i++) { const a = i / N * 6.283 + t * .9, r = Math.min(W, H) * (.36 + .08 * Math.sin(t * 2 + i)); fx.spark(g, W / 2 + (W > H * 1.2 ? H * .28 : 0) + Math.cos(a) * r * (W / H > 1.2 ? 1.25 : 1), H / 2 + Math.sin(a) * r, Math.min(W, H) * (.012 + .02 * burst), i % 3 ? P.c1 : P.c2, .5 + .4 * burst); }
+    c.hud(`茱莉亚集 · c = ${cx.toFixed(3)} ${cy < 0 ? '−' : '+'} ${Math.abs(cy).toFixed(3)}i · ${burst > .3 ? '出界：碎为金屑' : '界内：千叶连通'}`);
   } };
-});
+}, { full: true });
+

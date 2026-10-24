@@ -150,33 +150,36 @@ reg('defib', c => {
   } };
 });
 
-// 众目结契：迪菲—赫尔曼（p=23, g=5；甲秘 6，乙秘 15 → 公开 8 与 19 → 共同秘密 2）
-reg('dh', c => {
-  const { g, S, P, R, fx } = c, p = 23, gg = 5, a = 6, b = 15, pw = (x, e) => { let r = 1; for (let i = 0; i < e; i++) r = r * x % p; return r; }, A = pw(gg, a), B = pw(gg, b), K = pw(B, a);
-  const eyes = []; for (let i = 0; i < 16; i++) { const an = i / 16 * 6.283; eyes.push([S / 2 + Math.cos(an) * S * .43, S * .47 + Math.sin(an) * S * .4, an]); }
-  const eye = (x, y, s, look, al) => { const pts1 = [], pts2 = []; for (let i = 0; i <= 12; i++) { const u = i / 12 * 2 - 1; pts1.push([x + u * s, y - (1 - u * u) * s * .45]); pts2.push([x + u * s, y + (1 - u * u) * s * .45]); } fx.poly(g, pts1, P.ink, S * .004, al); fx.poly(g, pts2, P.ink, S * .004, al); fx.circle(g, x + look[0] * s * .25, y + look[1] * s * .15, s * .28, { fill: P.ink, a: al }); };
+// 焚舟斩：燃烧之船分形 z ← (|Re z| + i|Im z|)² + c。镜头从整艘船推进到船首的小舰队（c ≈ −1.762 − 0.028i），
+// 墨色深浅 = 逃逸快慢（越近船体墨越浓），朱砂火线沿等势线游走，一道朱刃周期性斜斩而过
+reg('burnship', c => {
+  const { g, P, fx } = c;
+  const draw = fx.shaderWH('burnship_v5', fx.GLSL + `uniform vec2 CEN; uniform float Z, ANG, SL, FIRE;
+  void main(){ vec2 uv=(gl_FragCoord.xy-.5*R)/R.y; vec2 w=uv*rot(ANG);
+    vec2 cc=CEN+w*Z*vec2(1.,-1.);
+    vec2 z=vec2(0.); float n=0.;
+    for(int i=0;i<240;i++){ z=abs(z); z=vec2(z.x*z.x-z.y*z.y,2.*z.x*z.y)+cc; if(dot(z,z)>256.) break; n+=1.; }
+    vec3 col=INK; float a;
+    if(n>=240.){ a=.94; }
+    else { float s=n-log2(log2(dot(z,z)))+4.; float k=clamp(s/90.,0.,1.);
+      a=pow(k,.75)*.9;
+      float band=pow(.5+.5*cos(s*.42-T*2.4),10.)*smoothstep(.12,.55,k)*FIRE;
+      col=mix(INK,ACC,clamp(band*1.5,0.,1.)); a=max(a,band*.95); }
+    float sl=(uv.x*.82+uv.y*.57)-SL; float blade=exp(-sl*sl*160.)+.35*exp(-sl*sl*12.)*step(sl,0.);
+    col=mix(col,ACC,clamp(blade,0.,1.)*.85); a=max(a,clamp(blade,0.,1.)*.75);
+    gl_FragColor=vec4(col,a); }`, { res: c.theater ? .6 : .85 });
   return { step(t) {
-    const T = 12, ct = t % T; fx.clear(g, S);
-    const L = [S * .2, S * .52], Rr = [S * .8, S * .52];
-    // 众目
-    eyes.forEach(([x, y]) => { const dx = S / 2 - x, dy = S / 2 - y, d = Math.hypot(dx, dy); eye(x, y, S * .03, [dx / d, dy / d], .65); });
-    // 两修士：墨团 + 朱砂心印
-    [L, Rr].forEach((q, i) => { fx.splat(g, q[0], q[1], S * .07, P.ink, { seed: 10 + i, drops: 5 }); fx.text(g, i ? '乙' : '甲', q[0], q[1] - S * .005, { c: '#f3e6cc', size: S * .055, font: '"Ma Shan Zheng","KaiTi",serif' }); });
-    // 公开：g=5, p=23（顶部）
-    fx.text(g, `公开  g = ${gg}   p = ${p}`, S / 2, S * .2, { c: P.ink, size: S * .045, a: fx.clamp(ct) });
-    // 私秘（只在各自身下，淡显）
-    fx.text(g, `秘 ${a}`, L[0], L[1] + S * .11, { c: P.c1, size: S * .035, a: fx.clamp(ct - 1) * .9 }); fx.text(g, `秘 ${b}`, Rr[0], Rr[1] + S * .11, { c: P.c1, size: S * .035, a: fx.clamp(ct - 1) * .9 });
-    // 符纸飞过：A 与 B
-    const f = fx.ease((ct - 2.5) / 3);
-    const talisman = (x, y, txt) => { fx.brush(g, [[x, y - S * .045], [x, y + S * .045]], S * .07, '#e9d39a', { taper: false, jit: 0, a: .95 }); fx.line(g, x - S * .035, y - S * .045, x - S * .035, y + S * .045, P.c1, 2); fx.line(g, x + S * .035, y - S * .045, x + S * .035, y + S * .045, P.c1, 2); fx.text(g, txt, x, y, { c: P.c1, size: S * .04, w: 700 }); };
-    if (ct > 2) { talisman(fx.lerp(L[0] + S * .1, Rr[0] - S * .1, f), S * .4 - Math.sin(f * Math.PI) * S * .08, `${A}`); talisman(fx.lerp(Rr[0] - S * .1, L[0] + S * .1, f), S * .64 + Math.sin(f * Math.PI) * S * .08, `${B}`); }
-    // 共同秘密：二人之间的朱印
-    const k = fx.clamp((ct - 7) / 1.5);
-    if (k > 0) { fx.text(g, `${B}^${a} mod ${p} = ${K}`, L[0] + S * .04, S * .29, { c: P.ink, size: S * .03, a: k }); fx.text(g, `${A}^${b} mod ${p} = ${K}`, Rr[0] - S * .04, S * .29, { c: P.ink, size: S * .03, a: k });
-      fx.seal(g, S / 2 - S * .06, S * .46, S * .12 * k + 1, String(K), P.c1, .95 * k); }
-    c.hud(k > 0 ? `契成：二人得 ${K}，众目只见 ${A} 与 ${B}` : '众目睽睽下交换符纸');
+    const W = c.W, H = c.H; g.clearRect(0, 0, W, H);
+    const T = 14, ph = (t % T) / T, e = fx.ease(Math.min(1, ph / .8));
+    const c0 = [-1.66, -.035], c1 = [-1.7618, -.0284], m = Math.pow(e, .5);
+    const Z = Math.exp(Math.log(.36) * (1 - e) + Math.log(.022) * e);
+    const sw = (t % 3.6) / 3.6, SL = -1.6 + 3.4 * fx.ease(Math.min(1, sw / .35)) - (sw > .35 ? 0 : 0);
+    draw(g, W, H, t, P, { CEN: [fx.lerp(c0[0], c1[0], m), fx.lerp(c0[1], c1[1], m)], Z, ANG: .25 * Math.sin(t * .2), SL: sw < .35 ? SL : 9, FIRE: .6 + .4 * Math.sin(t * .8) });
+    // 斩落处溅墨
+    if (sw > .3 && sw < .45) { const k = (sw - .3) / .15; fx.splat(g, W * (.15 + .7 * k), H * (.75 - .5 * k), Math.min(W, H) * .018 * (1 - k), P.acc, { seed: Math.floor(t / 3.6) + 3, a: .85 * (1 - k), drops: 6 }); }
+    c.hud(`燃烧之船 · 放大 ${(2 / Z).toFixed(0)} 倍 · 船首小舰队 c ≈ −1.762 − 0.028i`);
   } };
-});
+}, { full: true });
 
 // 兰顿傀儡：白格右转、黑格左转，约一万步后修出“高速路”
 reg('langton', c => {

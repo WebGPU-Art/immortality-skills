@@ -373,40 +373,64 @@ reg('anneal', c => {
 }, { full: true });
 
 // =====================================================================
-// 麦氏提纯：三维丹炉里三千分子，炉中隔板一扇小门，门妖逐个判别；每判一次记下一比特
+// 霞光天衣：分形火焰（Draves 的迭代函数系统 + 非线性变换，对数密度着色）。
+// 三个仿射变换各带正弦、球面、漩涡、马蹄等变形，外加 120° 旋转对称；变换参数在两套之间缓缓流转，
+// 每隔数息天衣一挥（终变换急旋），霞光层层铺开
 // =====================================================================
-reg('demon', c => {
-  const { g, P, R, fx } = c, sk = skyOf(fx), N = 3200, X = new Float32Array(N * 3), V = new Float32Array(N * 3), BX = 1, BY = .62, BZ = .62, DR = .3;
-  let cyc = -1, bits = 0, simT = 0, med = 1, flash = 0; const sparks = [];
-  const reset = () => { for (let i = 0; i < N; i++) { X[3 * i] = (R() * 2 - 1) * BX; X[3 * i + 1] = (R() * 2 - 1) * BY; X[3 * i + 2] = (R() * 2 - 1) * BZ; const sp = Math.sqrt(-2 * Math.log(R() + 1e-9)) * .9, th = Math.acos(2 * R() - 1), ph = R() * TAU; V[3 * i] = sp * Math.sin(th) * Math.cos(ph); V[3 * i + 1] = sp * Math.sin(th) * Math.sin(ph); V[3 * i + 2] = sp * Math.cos(th); } const sps = []; for (let i = 0; i < N; i++) sps.push(Math.hypot(V[3 * i], V[3 * i + 1], V[3 * i + 2])); sps.sort((a, b) => a - b); med = sps[N >> 1]; bits = 0; sparks.length = 0; };
-  const D = new Float32Array((N + 800) * 8), Dl = new Float32Array(400 * 8);
-  const C1 = c01(P.c1), C2 = c01(P.c2), AC = c01(P.acc), pl = pts(fx, 'zx_dem_l', true), pp = pts(fx, 'zx_dem_p');
+reg('flame', c => {
+  const { g, P, R, fx } = c, sk = skyOf(fx);
+  const bw = Math.max(64, Math.round(c.W / 2)), bh = Math.max(64, Math.round(c.H / 2)), NPX = bw * bh;
+  const DEN = new Float32Array(NPX), CR = new Float32Array(NPX), CG = new Float32Array(NPX), CB = new Float32Array(NPX);
+  const off = document.createElement('canvas'); off.width = bw; off.height = bh; const og = off.getContext('2d'), img = og.createImageData(bw, bh);
+  const pal = [c01(P.c1), c01(P.acc), c01(P.c2), [1, .95, .85]];
+  const palAt = u => { u = ((u % 1) + 1) % 1 * 3; const k = Math.floor(u), f = u - k; return mx(pal[k], pal[k + 1], f); };
+  // 两套变换参数：[a,b,c,d,e,f, 正弦, 球面, 漩涡, 马蹄, 手帕, 颜色]
+  const SA = [[.56, -.38, .08, .41, .52, .18, .55, .25, 0, .2, 0, .05], [-.42, .61, -.3, .5, -.2, .55, 0, .3, .5, 0, .2, .4], [.3, .25, .45, -.33, .1, -.5, .2, 0, 0, .3, .5, .8]];
+  const SB = [[.48, .52, -.2, .44, .3, -.3, .3, .5, .2, 0, 0, .1], [.62, -.18, .25, .58, -.45, .1, .4, 0, .3, .3, 0, .45], [-.35, .4, .5, .2, .4, .45, 0, .2, .6, 0, .2, .85]];
+  let X = R() * 2 - 1, Y = R() * 2 - 1, CC = .5, last = 0;
   return { step(t) {
-    const CYC = 18, cc = Math.floor(t / CYC); if (cc !== cyc) { cyc = cc; reset(); simT = cc * CYC; }
-    let guard = 0; const h = .02;
-    while (simT < t && guard++ < 6) { simT += 1 / 30;
-      for (let s = 0; s < 3; s++) for (let i = 0; i < N; i++) { const o = 3 * i, x0 = X[o]; X[o] += V[o] * h; X[o + 1] += V[o + 1] * h; X[o + 2] += V[o + 2] * h;
-        if (Math.abs(X[o + 1]) > BY) { V[o + 1] *= -1; X[o + 1] = Math.sign(X[o + 1]) * BY; } if (Math.abs(X[o + 2]) > BZ) { V[o + 2] *= -1; X[o + 2] = Math.sign(X[o + 2]) * BZ; } if (Math.abs(X[o]) > BX) { V[o] *= -1; X[o] = Math.sign(X[o]) * BX; }
-        if ((x0 < 0) !== (X[o] < 0)) { const inDoor = Math.abs(X[o + 1]) < DR && Math.abs(X[o + 2]) < DR, sp = Math.hypot(V[o], V[o + 1], V[o + 2]); let pass = false;
-          if (inDoor) { bits++; flash = 1; pass = (x0 < 0 && sp > med) || (x0 > 0 && sp < med); if (sparks.length < 800) sparks.push([0, X[o + 1], X[o + 2], simT]); }
-          if (!pass) { V[o] *= -1; X[o] = x0; } } } }
-    flash *= .88;
-    let hotR = 0, nR = 0, hotL = 0, nL = 0;
-    for (let i = 0; i < N; i++) { const o = 3 * i, sp = Math.hypot(V[o], V[o + 1], V[o + 2]), f = clamp((sp - med * .4) / (med * 1.4)); put(D, i, X[o], X[o + 1], X[o + 2], 0, ...(f > .5 ? mx(C1, AC, (f - .5) * 2) : mx(C2, C1, f * 2)), .65 + .6 * f); if (X[o] > 0) { hotR += sp * sp; nR++; } else { hotL += sp * sp; nL++; } }
-    // 擦除比特的余热：门口升起的金色火星（兰道尔：每比特 ≥ kT ln2）
-    let q = N; for (let k = sparks.length - 1; k >= 0; k--) { const [x, y, z, t0] = sparks[k], age = simT - t0; if (age > 2.5) { sparks.splice(k, 1); continue; } put(D, q++, x + Math.sin(age * 5 + k) * .03, y + age * .5, z, 0, ...AC, 1.2 * (1 - age / 2.5)); }
-    let lq = 0; const L_ = (a, b, cl, al) => { put(Dl, lq++, ...a, 0, ...cl, al); put(Dl, lq++, ...b, 0, ...cl, al); };
-    const cs = [-1, 1]; for (const y of cs) for (const z of cs) L_([-BX, y * BY, z * BZ], [BX, y * BY, z * BZ], C1, .4); for (const x of cs) for (const z of cs) L_([x * BX, -BY, z * BZ], [x * BX, BY, z * BZ], C1, .4); for (const x of cs) for (const y of cs) L_([x * BX, y * BY, -BZ], [x * BX, y * BY, BZ], C1, .4);
-    for (let k = -4; k <= 4; k++) { L_([0, -BY, k / 4 * BZ], [0, BY, k / 4 * BZ], [1, 1, 1], .1); L_([0, k / 4 * BY, -BZ], [0, k / 4 * BY, BZ], [1, 1, 1], .1); }
-    for (let k = 0; k < 24; k++) { const a = k / 24 * TAU, b = (k + 1) / 24 * TAU; L_([Math.cos(a) * 1.45, -BY - .05, Math.sin(a) * .95], [Math.cos(b) * 1.45, -BY - .05, Math.sin(b) * .95], AC, .35); L_([Math.cos(a) * 1.45, BY + .05, Math.sin(a) * .95], [Math.cos(b) * 1.45, BY + .05, Math.sin(b) * .95], AC, .2); }
-    const d = [[0, -DR, -DR], [0, DR, -DR], [0, DR, DR], [0, -DR, DR]]; for (let k = 0; k < 4; k++) L_(d[k], d[(k + 1) % 4], AC, .7 + .8 * flash);
-    // 镜头：绕丹炉一周，中途推近到炉门
-    const u = (t % 22) / 22, near = ease(pingpong(u)), yaw = .5 + u * TAU * .5 + .4 * Math.sin(u * TAU), pitch = lerp(.38, .15, near), dist = lerp(3.3, 1.55, near);
-    g.clearRect(0, 0, c.W, c.H); drawSky(c, sk, t, { cy: -yaw * .4, cp: .1, dk: .3 });
-    const Ub = { yaw, pitch, scale: .9, dist3: dist };
-    pl.draw(g, c.S, t, P, Dl, U(c, { ...Ub, n: lq })); pp.draw(g, c.S, t, P, D, U(c, { ...Ub, n: q, size: 4.6 }));
-    const TL = hotL / Math.max(1, nL), TR = hotR / Math.max(1, nR);
-    c.hud(`判别 ${bits} 次 · 擦除至少耗散 ${bits}·kT ln2 · 右/左温比 ${(TR / TL).toFixed(2)}`);
+    const dt = Math.min(.1, Math.max(0, t - last)); last = t;
+    const u = pingpong((t % 40) / 40), TF = SA.map((a, i) => a.map((v, k) => lerp(v, SB[i][k], ease(u))));
+    // 天衣一挥：每 7 息末段终变换急旋一周的三分之一
+    const PER = 7, kk = Math.floor(t / PER), ph = (t % PER) / PER, sw = ease(clamp((ph - .7) / .25));
+    const ang = t * .06 + (kk + sw) * TAU / 3, ca = Math.cos(ang), sa = Math.sin(ang);
+    const zoom = .9 + .12 * Math.sin(t * .13), sc = Math.min(bw, bh) * .36 * zoom, cx = bw * (c.W > c.H * 1.2 ? .58 : .5), cy = bh * .5;
+    // 余晖衰减，让天衣随参数流动而换形
+    const dec = Math.pow(.25, dt * (1 + 2.5 * sw));
+    for (let i = 0; i < NPX; i++) { DEN[i] *= dec; CR[i] *= dec; CG[i] *= dec; CB[i] *= dec; }
+    const NIT = 70000 + Math.round(60000 * sw);
+    for (let n = 0; n < NIT; n++) {
+      const r0 = R();
+      if (r0 < .3) { // 对称变换：绕原点转 120° 或 240°（色不变）
+        const a2 = r0 < .15 ? TAU / 3 : -TAU / 3, cc2 = Math.cos(a2), ss2 = Math.sin(a2), x0 = X; X = X * cc2 - Y * ss2; Y = x0 * ss2 + Y * cc2;
+      } else {
+        const T_ = TF[r0 < .55 ? 0 : r0 < .8 ? 1 : 2];
+        const x = T_[0] * X + T_[1] * Y + T_[4], y = T_[2] * X + T_[3] * Y + T_[5], r2 = x * x + y * y + 1e-9, r = Math.sqrt(r2), th = Math.atan2(y, x);
+        let nx = 0, ny = 0; const w0 = Math.max(0, 1 - T_[6] - T_[7] - T_[8] - T_[9] - T_[10]);
+        nx += w0 * x; ny += w0 * y;
+        nx += T_[6] * Math.sin(x); ny += T_[6] * Math.sin(y);                                   // 正弦
+        nx += T_[7] * x / r2; ny += T_[7] * y / r2;                                             // 球面
+        const s2 = Math.sin(r2), c2 = Math.cos(r2); nx += T_[8] * (x * s2 - y * c2); ny += T_[8] * (x * c2 + y * s2);  // 漩涡
+        nx += T_[9] * (x - y) * (x + y) / r; ny += T_[9] * 2 * x * y / r;                         // 马蹄
+        nx += T_[10] * r * Math.sin(th + r); ny += T_[10] * r * Math.cos(th - r);               // 手帕
+        X = nx; Y = ny; CC = (CC + T_[11]) * .5;
+      }
+      if (n < 20 || !isFinite(X) || Math.abs(X) > 1e4) { if (!isFinite(X) || Math.abs(X) > 1e4) { X = R() * 2 - 1; Y = R() * 2 - 1; } continue; }
+      const fx_ = X * ca - Y * sa, fy_ = X * sa + Y * ca;                                      // 终变换：旋转（挥袖）
+      const px = Math.round(cx + fx_ * sc), py = Math.round(cy - fy_ * sc);
+      if (px < 0 || py < 0 || px >= bw || py >= bh) continue;
+      const o = py * bw + px, col = palAt(CC + t * .01);
+      DEN[o] += 1; CR[o] += col[0]; CG[o] += col[1]; CB[o] += col[2];
+    }
+    // 对数密度着色（Draves）：亮度 ∝ log(1+密度)/log(1+最大密度)，颜色取平均色
+    let mxd = 1; for (let i = 0; i < NPX; i += 7) if (DEN[i] > mxd) mxd = DEN[i];
+    const lm = 1 / Math.log(1 + mxd * 1.4), d = img.data;
+    for (let i = 0; i < NPX; i++) { const dn = DEN[i]; if (dn < .02) { d[i * 4 + 3] = 0; continue; }
+      const a = Math.pow(Math.log(1 + dn) * lm, .45), k = 255 * a / dn; d[i * 4] = Math.min(255, CR[i] * k * 1.15); d[i * 4 + 1] = Math.min(255, CG[i] * k * 1.1); d[i * 4 + 2] = Math.min(255, CB[i] * k); d[i * 4 + 3] = 255; }
+    og.putImageData(img, 0, 0);
+    g.clearRect(0, 0, c.W, c.H); drawSky(c, sk, t, { cy: .15 * Math.sin(t * .05), cp: .12, dk: .45, fl: sw * .4 });
+    g.save(); g.globalCompositeOperation = 'lighter'; g.imageSmoothingQuality = 'high'; g.drawImage(off, 0, 0, c.W, c.H); g.restore();
+    c.hud(`分形火焰 · 三变换 × 五种变形 + 三重旋转对称 · 本帧 ${(NIT / 1000).toFixed(0)} 千次迭代 · 参数流转 ${(u * 100).toFixed(0)}%`);
   } };
 }, { full: true });
 
@@ -472,3 +496,52 @@ reg('timecrystal', c => {
     c.hud(`驱动第 ${per} 周期 · 法宝形态 ${per % 2 ? '乙' : '甲'} · 晶格磁化 ${last >= 0 ? '+' : ''}${last.toFixed(2)}（两倍周期）`);
   } };
 }, { full: true });
+
+// —— 原路奉还（trm）：恢复 v2 版本（正方形演示），独立作用域 ——
+{
+const TAU = Math.PI * 2;
+const c01 = c => hex(c).map(v => v / 255);
+// 往 Float32Array 写一个点/线端点
+const put = (D, i, x, y, z, w, r, g, b, a) => { const o = i * 8; D[o] = x; D[o + 1] = y; D[o + 2] = z; D[o + 3] = w; D[o + 4] = r; D[o + 5] = g; D[o + 6] = b; D[o + 7] = a; };
+// 绕任意轴旋转向量
+function rotAxis(v, k, a) { const c = Math.cos(a), s = Math.sin(a), d = v[0] * k[0] + v[1] * k[1] + v[2] * k[2]; return [v[0] * c + (k[1] * v[2] - k[2] * v[1]) * s + k[0] * d * (1 - c), v[1] * c + (k[2] * v[0] - k[0] * v[2]) * s + k[1] * d * (1 - c), v[2] * c + (k[0] * v[1] - k[1] * v[0]) * s + k[2] * d * (1 - c)]; }
+const norm = v => { const l = Math.hypot(...v) || 1; return v.map(x => x / l); };
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+reg('trm', c => {
+  const { g, S, P, R, fx } = c, M = 96, A = new Float32Array(M * M);
+  let u = new Float32Array(M * M), v = new Float32Array(M * M); // u=当前，v=上一步
+  const C2 = new Float32Array(M * M).fill(.25), rocks = [];
+  for (let k = 0; k < 70; k++) { const x = 8 + Math.floor(R() * (M - 16)), y = 8 + Math.floor(R() * (M - 16)); if (Math.hypot(x - M * .3, y - M * .5) < 10) continue; const r = 1 + Math.floor(R() * 2); for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) if (i * i + j * j <= r * r) C2[(y + j) * M + x + i] = .015; rocks.push([x, y, r]); }
+  const SX = Math.round(M * .3), SY = Math.round(M * .5), F = 230;
+  const init = () => { u.fill(0); v.fill(0); for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) { const d2 = (i - SX) ** 2 + (j - SY) ** 2; u[j * M + i] = v[j * M + i] = 1.6 * Math.exp(-d2 / 5); } };
+  const step1 = () => { for (let j = 1; j < M - 1; j++) for (let i = 1; i < M - 1; i++) { const k = j * M + i; A[k] = 2 * u[k] - v[k] + C2[k] * (u[k - 1] + u[k + 1] + u[k - M] + u[k + M] - 4 * u[k]); } const tmp = v; v = u; u = A.slice(); };
+  init(); let n = 0, rev = false, cyc = -1;
+  const NV = (M * (M - 1) * 2) * 2, D = new Float32Array(NV * 8), Dp = new Float32Array(rocks.length * 8 + 8);
+  const pc = fx.points('trm_l', { lines: true }), pp = fx.points('trm_p');
+  const C1 = c01(P.c1), CC2 = c01(P.c2), AC = c01(P.acc);
+  const CYC = 16; // 7s 正向录波 · 1s 静 · 7s 倒放 · 1s 聚焦
+  return { step(t) {
+    const cc = Math.floor(t / CYC), tc = t % CYC;
+    if (cc !== cyc) { cyc = cc; init(); n = 0; rev = false; }
+    let target; if (tc < 7) target = Math.floor(F * tc / 7); else if (tc < 8) target = F; else if (tc < 15) target = F + Math.floor(F * (tc - 8) / 7); else target = 2 * F;
+    let guard = 0;
+    while (n < target && guard++ < 60) { if (n === F && !rev) { const tmp = u; u = v; v = tmp; rev = true; } step1(); n++; }
+    // 波面：三维高度场线框
+    let q = 0; const sc = 2 / (M - 1), hz = .9;
+    const vtx = (i, j) => { const k = j * M + i, h = u[k], a = clamp(Math.abs(h) * 2.2, 0, 1), cl = h >= 0 ? C1 : CC2; put(D, q++, (i * sc - 1), .5 * Math.tanh(h * 2.2), (j * sc - 1), 0, cl[0], cl[1], cl[2], .05 + .9 * a); };
+    for (let j = 0; j < M; j += 1) for (let i = 0; i < M - 1; i++) { vtx(i, j); vtx(i + 1, j); }
+    for (let i = 0; i < M; i += 1) for (let j = 0; j < M - 1; j++) { vtx(i, j); vtx(i, j + 1); }
+    fx.clear(g, S);
+    const yaw = .6 + Math.sin(t * .1) * .25;
+    pc.draw(g, S, t, P, D, { n: q, yaw, pitch: .7, scale: .85, dist3: 3.6 });
+    let pq = 0; for (const [x, y, r] of rocks) put(Dp, pq++, x * sc - 1, .03, y * sc - 1, 0, AC[0], AC[1], AC[2], .9);
+    put(Dp, pq++, SX * sc - 1, .05, SY * sc - 1, 0, 1, 1, 1, 1);
+    pp.draw(g, S, t, P, Dp, { n: pq, yaw, pitch: .7, scale: .85, dist3: 3.6, size: 7 });
+    if (tc > 14.6) fx.spark(g, S / 2, S / 2, S * .5, P.c2, .3 * (1 - (tc - 14.6) / 1.4));
+    const ph = tc < 7 ? '录波：波撞上乱石，碎成一片' : tc < 8 ? '时间反转' : tc < 15 ? '倒放发射：碎波沿原路收拢' : '精确聚焦回波源';
+    c.hud(`${ph} · 第 ${rev ? 2 * F - n : n} 步`);
+  } };
+});
+
+// ---------- 纠错元神：环面码（四维克利福德环面上的表面码），受击 → 症候 → 配对纠正 ----------
+}

@@ -280,39 +280,44 @@ reg('nocloning', c => {
 }, { full: true });
 
 // ======================================================================
-// 不言证身：十二面体图三着色；每轮重新涂色、封印，验证者只开一条边
+// 天罗宝珠：伪克莱因群分形（pseudo-Kleinian，Knighty 于 Fractal Forums 提出）。
+// 迭代：盒折叠 p ← 2·clamp(p, −C, C) − p，再球反演 p ← max(1/|p|², 1)·p——与克莱因群极限集同源的“折叠 + 反演”；
+// 生成无穷回廊般的宝珠与穹窿。镜头沿回廊巡游，道祖金光自远处推进。
 // ======================================================================
-reg('zk', c => {
-  const { g, P, fx, R } = c;
-  // 正十二面体顶点
-  const phi = (1 + Math.sqrt(5)) / 2, V = [];
-  for (const a of [-1, 1]) for (const b of [-1, 1]) for (const d of [-1, 1]) V.push([a, b, d]);
-  for (const a of [-1, 1]) for (const b of [-1, 1]) { V.push([0, a / phi, b * phi]); V.push([a / phi, b * phi, 0]); V.push([a * phi, 0, b / phi]); }
-  const E = []; for (let i = 0; i < 20; i++) for (let j = i + 1; j < 20; j++) { const d = Math.hypot(...sub(V[i], V[j])); if (Math.abs(d - 2 / phi) < 1e-6) E.push([i, j]); }
-  // 回溯求一个合法三着色
-  const col = Array(20).fill(-1); const ok = (v, k) => E.every(([a, b]) => !((a === v && col[b] === k) || (b === v && col[a] === k)));
-  const solve = v => { if (v === 20) return true; for (let k = 0; k < 3; k++) if (ok(v, k)) { col[v] = k; if (solve(v + 1)) return true; } col[v] = -1; return false; }; solve(0);
-  const COLS = [P.ink, P.c1, P.acc], RD = 3.2; let rnd = -1, perm = [0, 1, 2], edge = 0;
-  const stars = Array.from({ length: 400 }, () => [(R() - .5) * 50, (R() - .5) * 30, (R() - .5) * 50]);
+reg('kleinian', c => {
+  const { g, P, fx } = c;
+  const draw = fx.shaderWH('dz5_kleinian', fx.GLSL + `uniform vec3 EYE,FW,RT,UP; uniform float FOV,CSZ,PULSE;
+  const vec3 CS=vec3(.808,.808,1.167);
+  float DE(vec3 p, out vec4 tr){ float k=1.; tr=vec4(1e9);
+    for(int i=0;i<8;i++){ p=2.*clamp(p,-CS,CS)-p; float r2=dot(p,p); tr=min(tr,vec4(abs(p),r2)); float kk=max(CSZ/r2,1.); p*=kk; k*=kk; }
+    float rxy=length(p.xy); return max(rxy-.92784, abs(rxy*p.z)/length(p))/k; }
+  void main(){ vec2 uv=(gl_FragCoord.xy-.5*R)/R.y; vec3 rd=normalize(FW*FOV+uv.x*RT+uv.y*UP), ro=EYE;
+    float tt=.002; vec4 tr; bool hit=false; int st=0; float glow=0.;
+    for(int i=0;i<130;i++){ vec3 p=ro+rd*tt; float d=DE(p,tr); glow+=exp(-d*260.); if(d<.0011*tt+.0001){hit=true;break;} tt+=d*.9; st=i; if(tt>6.) break; }
+    vec3 bg=mix(vec3(.004,.003,.002),C1*.05,smoothstep(-.3,.8,rd.y));
+    vec3 col=bg;
+    if(hit){ vec3 p=ro+rd*tt; float e=.0016*tt+.0002; vec4 t1;
+      vec3 nr=normalize(vec3(DE(p+vec3(e,0,0),t1)-DE(p-vec3(e,0,0),t1),DE(p+vec3(0,e,0),t1)-DE(p-vec3(0,e,0),t1),DE(p+vec3(0,0,e),t1)-DE(p-vec3(0,0,e),t1)));
+      DE(p,tr); float ao=(.4+.6*clamp(tr.w*3.,0.,1.))*pow(clamp(1.-float(st)/130.,0.,1.),.7);
+      vec3 L=normalize(vec3(.4,.8,-.3)); float dif=max(dot(nr,L),0.), amb=.5+.5*nr.y;
+      // 太极金墨：金为体、墨为影，轨道陷阱里离反演中心近处泛白
+      vec3 base=mix(C1,INK,clamp(1.-tr.w*1.8,0.,1.)*.55); base=mix(vec3(.12,.09,.05),base,clamp(tr.x*1.6+.35,0.,1.));
+      float fr=pow(1.-max(dot(nr,-rd),0.),3.);
+      float head=max(dot(nr,-rd),0.)*exp(-tt*.6);
+      col=base*(.18*amb+.9*dif+.75*head)*ao + C1*fr*.55*ao + INK*pow(max(dot(reflect(rd,nr),L),0.),40.)*.8*ao;
+      // 金光推进：沿回廊远处的一圈光环随时间向镜头扫来
+      float ring=exp(-pow((tt-mod(PULSE,6.))*3.,2.)); col+=C1*ring*.9*ao + ACC*ring*ring*.25*ao;
+      col=mix(col,bg,1.-exp(-tt*tt*.18)); }
+    col+=C1*glow*.004;
+    col=col/(1.+col*.45); gl_FragColor=vec4(pow(col,vec3(.95)),1.); }`, { res: c.theater ? .5 : .6 });
   return { step(t) {
-    const k = Math.floor(t / RD), ph = (t % RD) / RD; if (k !== rnd) { rnd = k; perm = [0, 1, 2].sort(() => R() - .5); edge = Math.floor(R() * E.length); }
-    const W = c.W, H = c.H; const [ea, eb] = E[edge]; const mid = V[ea].map((v, i) => (v + V[eb][i]) / 2 * 1.6);
-    const orb = t * .2, dist = lerp(6.5, 4.2, Math.sin(Math.PI * clamp((ph - .3) / .6))), base = [dist * Math.sin(orb), 1.6 * Math.sin(t * .17), -dist * Math.cos(orb)];
-    const cam = lookAt(base, mid.map(v => v * .4 * Math.sin(Math.PI * clamp((ph - .3) / .6))));
-    const pr = projector(W, H, cam, 1.0);
-    fx.clear(g, Math.max(W, H)); g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    g.save(); g.globalCompositeOperation = 'lighter';
-    for (const s_ of stars) { const q = pr(s_); if (q) { g.fillStyle = rgba(P.ink, .4); g.fillRect(q[0], q[1], 1.3, 1.3); } }
-    // 外圈：三十道刻度（三十条边）的金环
-    for (let i = 0; i < 30; i++) { const a = i / 30 * TAU + t * .05; const p0 = pr([3.6 * Math.cos(a), 0, 3.6 * Math.sin(a)]), p1 = pr([4.1 * Math.cos(a), 0, 4.1 * Math.sin(a)]); if (p0 && p1) glowLine(g, p0, p1, i === edge ? P.acc : P.c1, i === edge ? 3 : 1.2, i === edge ? .9 : .35); }
-    const Vs = V.map(v => pr(v.map(x => x * 1.6)));
-    E.forEach(([a, b], i) => { if (!Vs[a] || !Vs[b]) return; const sel = i === edge && ph > .3; glowLine(g, Vs[a], Vs[b], sel ? '#ffffff' : P.c1, sel ? 3.5 : 1.4, sel ? .95 : .45); });
-    V.forEach((v, i) => { const q = Vs[i]; if (!q) return; const open = (i === ea || i === eb) && ph > .35; const r = Math.max(5, H * .022 * 4 / q[2]);
-      if (open) { fx.spark(g, q[0], q[1], r * 3.2, COLS[perm[col[i]]], 1); fx.circle(g, q[0], q[1], r, { fill: COLS[perm[col[i]]] }); }
-      else { g.globalAlpha = .9; g.fillStyle = '#1a1206'; g.fillRect(q[0] - r, q[1] - r, 2 * r, 2 * r); g.strokeStyle = P.c1; g.lineWidth = 1.5; g.strokeRect(q[0] - r, q[1] - r, 2 * r, 2 * r); } });
-    g.restore();
-    const n = rnd + 1, cheat = Math.pow(1 - 1 / 30, n);
-    c.hud(`第 ${n} 轮 · 只开一条边：两端异色 · 作弊者仍未被识破的概率 ${(cheat * 100).toFixed(1)}%`);
+    // 回廊巡游：沿 x 平移穿过周期单元，伴随缓慢上下与左右摆动；每 22 秒一转身
+    const s = t * .055, eye = [s, .02 + .05 * Math.sin(t * .17), .3 + .06 * Math.sin(t * .11)];
+    const yaw = .45 * Math.sin(t * .09), tgt = [eye[0] + Math.cos(yaw), eye[1] + .05 * Math.sin(t * .13) - .03, eye[2] + Math.sin(yaw) * .6 - .1];
+    const cam = lookAt(eye, tgt, .12 * Math.sin(t * .07));
+    const csz = 1.0 + .06 * Math.sin(t * .21);
+    draw(g, c.W, c.H, t, P, { EYE: cam.EYE, FW: cam.FW, RT: cam.RT, UP: cam.UP, FOV: 1.35, CSZ: csz, PULSE: t * 1.1 });
+    c.hud(`伪克莱因群分形 · 盒折叠 + 球反演（与克莱因群极限集同源） · 反演半径 ${csz.toFixed(3)} · 回廊无穷`);
   } };
 }, { full: true });
 

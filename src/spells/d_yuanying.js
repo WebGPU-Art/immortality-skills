@@ -155,31 +155,33 @@ reg('weier', c => {
   } };
 });
 
-// ================= 不动之点：布劳威尔不动点 =================
-reg('brouwer', c => {
-  const { g, S, P, fx } = c, PER = 8;
-  // 连续变换：收缩 0.7 + 旋转 + 漩涡 + 平移（仍映入圆盘内）
-  const F = (x, y, s) => { const r = Math.hypot(x, y), th = Math.atan2(y, x) + s * (1.1 + 1.6 * (1 - r)); const rr = r * (1 - .28 * s); return [rr * Math.cos(th) + .18 * s, rr * Math.sin(th) - .1 * s]; };
-  const fixed = () => { let p = [0, 0]; for (let i = 0; i < 200; i++) p = F(p[0], p[1], 1); return p; };
-  const fp = fixed();
+// 九幽鳞甲：马库斯—李雅普诺夫分形。逻辑斯蒂映射 x ← r x(1−x)，r 按序列在 a、b 之间交替，
+// 着色为李雅普诺夫指数 λ：λ<0（稳定）凝成青玉鳞甲，λ>0（混沌）沉为幽渊。序列每八秒一换
+reg('lyapfrac', c => {
+  const { g, P, fx } = c;
+  const SEQ = [{ s: 'AB', m: 2, l: 2, c: [3.1, 3.2], h: .5 }, { s: 'AABAB', m: 20, l: 5, c: [3.45, 3.5], h: .28 }, { s: 'BBBBBBAAAAAA', m: 63, l: 12, c: [3.62, 2.95], h: .21 }, { s: 'ABBAB', m: 22, l: 5, c: [3.35, 3.4], h: .3 }];
+  const draw = fx.shaderWH('lyapfrac_v5', fx.GLSL + `uniform float MASK, LEN, HW, SW; uniform vec2 CAB;
+  void main(){ vec2 uv=(gl_FragCoord.xy-.5*R)/R.y; vec2 ab=CAB+uv*HW*2.; float a=ab.x, b=ab.y;
+    float x=.5, lam=0.;
+    for(int i=0;i<240;i++){ float fi=float(i); float bit=mod(floor(MASK/pow(2.,mod(fi,LEN))),2.); float r=bit>.5?b:a;
+      x=clamp(r*x*(1.-x),1e-6,1.-1e-6); if(i>=48) lam+=log(abs(r*(1.-2.*x))+1e-7); }
+    lam/=192.;
+    vec3 col;
+    if(lam<0.){ float k=clamp(-lam*1.3,0.,1.); float band=.5+.5*cos(lam*70.); col=mix(C2*.45,C1*.75,pow(k,.55))*(.18+.55*pow(k,.45))*(.55+.45*band);
+      float sh=exp(-pow((uv.x+uv.y)-SW,2.)*14.); col+=INK*sh*.22*k; }
+    else col=vec3(.004,.02,.025)+C1*.12*exp(-lam*5.);
+    col+=INK*exp(-abs(lam)*55.)*.4;
+    col*=smoothstep(1.5,.35,length(uv*vec2(.8,1.)));
+    gl_FragColor=vec4(col,1.); }`, { res: c.theater ? .55 : .8 });
   return { step(t) {
-    fx.clear(g, S);
-    const tc = t % PER, s = tc < 3 ? (tc / 3) ** 2 * (3 - 2 * tc / 3) : tc < 5 ? 1 : 1 - ((tc - 5) / 3) ** 2 * (3 - 2 * (tc - 5) / 3);
-    const Rr = S * .4, X = p => S / 2 + p[0] * Rr, Y = p => S / 2 - p[1] * Rr;
-    fx.glow(g, P.c1, 20, () => fx.circle(g, S / 2, S / 2, Rr, { c: P.c1, w: S * .005 }));
-    // 被搅动的天地：经纬网格随变换扭曲
-    g.save(); g.globalCompositeOperation = 'lighter';
-    for (let k = 1; k <= 7; k++) { const r = k / 7.3; const pts = []; for (let i = 0; i <= 90; i++) { const a = i / 90 * TAU; const q = F(r * Math.cos(a), r * Math.sin(a), s); pts.push([X(q), Y(q)]); } fx.poly(g, pts, P.c1, S * .002, .55); }
-    for (let k = 0; k < 16; k++) { const a = k / 16 * TAU, pts = []; for (let i = 0; i <= 30; i++) { const q = F(i / 30 * .98 * Math.cos(a), i / 30 * .98 * Math.sin(a), s); pts.push([X(q), Y(q)]); } fx.poly(g, pts, P.ink, S * .0015, .35); }
-    g.restore();
-    // 不动点：施术者立足处
-    const q = F(fp[0], fp[1], s), x = X(q), y = Y(q), pul = 1 + .2 * Math.sin(t * 5);
-    fx.spark(g, x, y, S * .12 * pul, P.c2, 1); fx.circle(g, x, y, S * .018, { fill: '#fff' });
-    fx.line(g, x, y - S * .07, x, y + S * .02, P.c2, S * .005, .9); fx.glow(g, P.c2, 12, () => fx.circle(g, x, y - S * .08, S * .012, { fill: P.c2 }));
-    const e = Math.hypot(F(fp[0], fp[1], 1)[0] - fp[0], F(fp[0], fp[1], 1)[1] - fp[1]);
-    c.hud(`变换强度 ${(s * 100).toFixed(0)}% · 不动点 (${fp[0].toFixed(2)}, ${fp[1].toFixed(2)}) · 位移 ${e.toExponential(0)}`);
+    const W = c.W, H = c.H; g.clearRect(0, 0, W, H);
+    const T = 8, i = Math.floor(t / T) % SEQ.length, ph = (t % T) / T, q = SEQ[i];
+    const HW = q.h * (1 - .45 * fx.ease(ph));
+    draw(g, W, H, t, P, { MASK: q.m, LEN: q.l, HW, CAB: q.c, SW: -2 + 4 * ((t % 2.7) / 2.7) });
+    const f = Math.max(fx.clamp(1 - ph / .07), fx.clamp((ph - .93) / .07)); if (f > 0) { g.save(); g.globalAlpha = f; g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.restore(); }
+    c.hud(`李雅普诺夫分形 · 序列 ${q.s} · 青鳞 λ<0 稳定，幽渊 λ>0 混沌`);
   } };
-});
+}, { full: true });
 
 const h3 = (fx, c) => fx.hex(c).map(v => v / 255);
 // 共享的虚空底：深紫星云 + 远处星点

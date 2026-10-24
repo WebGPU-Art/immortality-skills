@@ -442,41 +442,45 @@ reg('pendulum2', c => {
   } };
 }, { full: true });
 
-// ================= 六度传书：一千二百修士的小世界网络；镜头沿网络主环飞行，看远线把天下连成一体 =================
-reg('smallworld', c => {
-  const { P, R, fx } = c, N = 1200, KN = 3, E = N * KN;
-  const C1 = h3(fx, P.c1), C2 = h3(fx, P.c2), G = h3(fx, P.acc);
-  const knot = s => [(2 + Math.cos(3 * s)) * Math.cos(2 * s) / 3, Math.sin(3 * s) / 3, (2 + Math.cos(3 * s)) * Math.sin(2 * s) / 3];
-  const pos = []; for (let i = 0; i < N; i++) pos.push(knot(i / N * TAU));
-  const eu = new Float32Array(E), et = new Int32Array(E); for (let e = 0; e < E; e++) { eu[e] = R(); et[e] = Math.floor(R() * N); }
-  const LN = new Float32Array(E * 16 * 8), PT = new Float32Array(N * 8), lines = camPts(fx, 'sw_lines3', true), pts = camPts(fx, 'sw_pts3'), bg = nebula(fx);
-  let lastRw = -1, adj, dist, L = 0, L0 = 0, Cc = 0, C0 = 0, cs = null;
-  const build = p => { adj = Array.from({ length: N }, () => []); for (let i = 0; i < N; i++) for (let k = 1; k <= KN; k++) { const e = i * KN + k - 1; let j = (i + k) % N; if (eu[e] < p && et[e] !== i) j = et[e]; adj[i].push(j); adj[j].push(i); } };
-  const bfs = s => { const d = new Int16Array(N).fill(-1), qq = [s]; d[s] = 0; for (let h = 0; h < qq.length; h++) { const u = qq[h]; for (const v of adj[u]) if (d[v] < 0) { d[v] = d[u] + 1; qq.push(v); } } return d; };
-  const stats = () => { let s = 0, n = 0; for (let k = 0; k < 6; k++) { const d = bfs(k * 197); for (let i = 0; i < N; i++) if (d[i] > 0) { s += d[i]; n++; } } let cs_ = 0; for (let i = 0; i < N; i += 3) { const nb = [...new Set(adj[i])], m = nb.length; if (m < 2) continue; let l = 0; for (let a = 0; a < m; a++) for (let b = a + 1; b < m; b++) if (adj[nb[a]].includes(nb[b])) l++; cs_ += 2 * l / (m * (m - 1)); } return [s / n, cs_ / (N / 3)]; };
-  build(0); [L0, C0] = stats();
+// ================= 反演剑轮：Apollian with a twist（Shadertoy Wl3fzM，mrange，CC0）=================
+// 四维球反演的阿波罗分形：p ← −1+2·fract(½p+½)，再按 s/|p|² 反演，迭代 7 次；第四维 w 随半径扭转，
+// 平面上看是一圈圈反演的剑弧在内外之间扫过。地板投影两盏灯的阴影，按距离着色。镜头缓慢推拉、平移。
+reg('twist', c => {
+  const { fx, P } = c;
+  const draw = fx.shaderWH('hti_twist', fx.GLSL + `uniform float TT,ZM,OX,OY,TW;
+#define L2(x) dot(x,x)
+#define ROTM(a) mat2(cos(a),sin(a),-sin(a),cos(a))
+#define PSIN(x) (0.5+0.5*sin(x))
+float th(float x){float e=exp(2.*clamp(x,-9.,9.));return (e-1.)/(e+1.);}
+vec3 hsv2rgb(vec3 c){vec4 K=vec4(1.,2./3.,1./3.,3.);vec3 p=abs(fract(c.xxx+K.xyz)*6.-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.,1.),c.y);}
+float apollian(vec4 p,float s){float scale=1.;for(int i=0;i<7;++i){p=-1.+2.*fract(.5*p+.5);float r2=dot(p,p);float k=s/r2;p*=k;scale*=k;}return abs(p.y)/scale;}
+float weird(vec2 p){float z=4.;p*=ROTM(TT*.1);float tm=.2*TT;float r=.5;
+  vec4 off=vec4(r*PSIN(tm*sqrt(3.)),r*PSIN(tm*sqrt(1.5)),r*PSIN(tm*sqrt(2.)),0.);
+  vec4 pp=vec4(p.x,p.y,0.,0.)+off;pp.w=.125*(1.-th(length(pp.xyz)))*TW;
+  pp.yz*=ROTM(tm);pp.xz*=ROTM(tm*sqrt(.5));pp/=z;return apollian(pp,1.2)*z;}
+float df(vec2 p){const float zoom=.5;p/=zoom;return weird(p)*zoom;}
+vec3 color(vec2 p){float aa=2./R.y*ZM;const float lw=.0235;const float lh=1.25;
+  vec3 lp1=vec3(.5,lh,.5),lp2=vec3(-.5,lh,.5);float d=df(p);float b=-.125;float t=10.;
+  vec3 ro=vec3(0.,t,0.),pp=vec3(p.x,0.,p.y),rd=normalize(pp-ro);float bt=-(t-b)/rd.y;vec3 bp=ro+bt*rd;
+  vec3 srd1=normalize(lp1-bp),srd2=normalize(lp2-bp);float bl21=L2(lp1-bp),bl22=L2(lp2-bp);
+  float st1=(0.-b)/srd1.y;vec3 sp1=bp+srd1*st1,sp2=bp+srd2*st1;float sd1=df(sp1.xz),sd2=df(sp2.xz);
+  vec3 col=vec3(0.);const float ss=15.;
+  col+=vec3(1.)*(1.-exp(-ss*max(sd1,0.)))/bl21;col+=vec3(.5)*(1.-exp(-ss*max(sd2,0.)))/bl22;
+  float l=length(p);float hue=fract(.75*l-.3*TT)+.3+.15;float sat=.75*th(2.*l);vec3 bcol=hsv2rgb(vec3(hue,sat,1.));
+  // 境界色：在原调色上略向赤、青、金偏移
+  bcol=mix(bcol,mix(C1,C2,.5+.5*sin(6.*l-TT)),.22);
+  col*=(1.-th(.75*l))*.5;col=mix(col,bcol,smoothstep(-aa,aa,-d));col+=.5*sqrt(bcol.zxy)*(exp(-(10.+100.*th(l))*max(d,0.)));
+  return col;}
+vec3 post(vec3 col,vec2 q){col=pow(clamp(col,0.,1.),vec3(1./2.2));col=col*.6+.4*col*col*(3.-2.*col);
+  col=mix(col,vec3(dot(col,vec3(.33))),-.4);col*=.5+.5*pow(19.*q.x*q.y*(1.-q.x)*(1.-q.y),.7);return col;}
+void main(){vec2 q=gl_FragCoord.xy/R;vec2 p=-1.+2.*q;p.x*=R.x/R.y;p=p*ZM+vec2(OX,OY);
+  gl_FragColor=vec4(post(color(p),q),1.);}`, { res: .75 });
   return { step(t) {
-    const CY = 18, lt = t % CY, p = Math.pow(10, -3.3 + 2.8 * Math.min(1, lt / 13));
-    let rw = 0; for (let e = 0; e < E; e++) if (eu[e] < p) rw++;
-    if (rw !== lastRw) { lastRw = rw; build(p); [L, Cc] = stats(); dist = bfs(0); }
-    const wave = (lt * 3.2) % (Math.max(...dist) + 6);
-    let m = 0;
-    for (let i = 0; i < N; i++) for (let k = 1; k <= KN; k++) { const e = i * KN + k - 1, local = !(eu[e] < p && et[e] !== i), j = local ? (i + k) % N : et[e], a = pos[i], b = pos[j];
-      if (local) { put(LN, m++, a[0], a[1], a[2], 0, C2, .3); put(LN, m++, b[0], b[1], b[2], 0, C2, .3); }
-      else { const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, mz = (a[2] + b[2]) / 2, lift = .15 + .35 * Math.hypot(a[0] - b[0], a[2] - b[2]); let prev = a;
-        for (let s = 1; s <= 8; s++) { const u = s / 8, w0 = (1 - u) * (1 - u), w1 = 2 * u * (1 - u), w2 = u * u, cur = [w0 * a[0] + w1 * mx * .2 + w2 * b[0], w0 * a[1] + w1 * (my + lift) + w2 * b[1], w0 * a[2] + w1 * mz * .2 + w2 * b[2]];
-          const hot = Math.abs(dist[i] - wave) < 1 ? 1 : 0; put(LN, m++, prev[0], prev[1], prev[2], 0, hot ? G : C1, hot ? .95 : .34); put(LN, m++, cur[0], cur[1], cur[2], 0, hot ? G : C1, hot ? .95 : .34); prev = cur; } } }
-    for (let i = 0; i < N; i++) { const dd = Math.abs(dist[i] - wave), hot = Math.exp(-dd * dd * 2); put(PT, i, pos[i][0], pos[i][1], pos[i][2], 0, mix3(C2, G, hot), .25 + 1.4 * hot); }
-    // 机位：前半程沿扭结主环飞行（略高、外侧），后半程拉起俯瞰全网
-    const s = t * .16, here = knot(s), ahead = knot(s + .22), outw = [here[0] * .5, .32, here[2] * .5];
-    const ride = { cp: [here[0] + outw[0], here[1] + outw[1], here[2] + outw[2]], ct: ahead };
-    const over = { cp: sph(t * .08, .8, 2.0), ct: [0, 0, 0] };
-    const wgt = ease((Math.sin(t * TAU / 18) + 1) / 2 * 1.3 - .15);
-    const cam = { cp: lerp3(ride.cp, over.cp, wgt), ct: lerp3(ride.ct, over.ct, wgt), fov: .62 };
-    cs = cs ? { cp: lerp3(cs.cp, cam.cp, .12), ct: lerp3(cs.ct, cam.ct, .12), fov: .62 } : cam;
-    clear(c); bg(c, t, s);
-    lines(c, t, LN, cs, { n: m, fade: .15 });
-    pts(c, t, PT, cs, { size: 3.4, fade: .15 });
-    c.hud(`远线 ${rw} 条（p=${p.toExponential(0)}）· 平均 ${L.toFixed(1)} 跳（原 ${L0.toFixed(0)}）· 聚类 ${(Cc / C0 * 100).toFixed(0)}%`);
+    // 镜头：缓慢推近—拉远（呼吸周期 26 秒），沿小圆平移；宽屏时略偏右，给左下文字让位
+    const W = c.W, H = c.H, wide = W / H > 1.2, br = .5 - .5 * Math.cos(t * Math.PI * 2 / 26);
+    const ZM = 1.05 - .55 * br, OX = (wide ? -.28 : 0) + .18 * Math.sin(t * .11), OY = .12 * Math.cos(t * .09);
+    const TW = 1 + .6 * Math.sin(t * .23);
+    draw(c.g, W, H, t, P, { TT: t, ZM, OX, OY, TW });
+    c.hud(`四维球反演 7 重 · 第四维扭转 ${TW.toFixed(2)} · 视距 ×${(1 / ZM).toFixed(2)}`);
   } };
 }, { full: true });

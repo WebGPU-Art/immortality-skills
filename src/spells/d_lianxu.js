@@ -320,39 +320,50 @@ function hil3(d, bits) {
   for (let Q = 2; Q !== N; Q <<= 1) { const Pm = Q - 1; for (let i = 2; i >= 0; i--) { if (X[i] & Q) X[0] ^= Pm; else { t = (X[0] ^ X[i]) & Pm; X[0] ^= t; X[i] ^= t; } } }
   return X;
 }
-reg('hilbert', c => {
-  const { fx, P } = c; setup(c);
-  const bits = 4, n = 1 << (3 * bits), side = 1 << bits, cen = (side - 1) / 2, sc = .13;
-  const pos = []; for (let i = 0; i < n; i++) { const X = hil3(i, bits); pos.push([(X[0] - cen) * sc, (X[1] - cen) * sc, (X[2] - cen) * sc]); }
-  const KS = 4, c1 = h3(fx, P.c1), c2 = h3(fx, P.c2), ac = h3(fx, P.acc), wh = [1, .95, .9];
-  const RING = 1400;
-  const D = new Float32Array(((n - 1) * KS + n + n / 2 + RING) * 8); const pc = fx.points('lx3_hil', { vs: VSCAM });
-  const avg = (i0, i1) => { let s = [0, 0, 0], k = 0; for (let i = Math.max(0, i0); i <= Math.min(n - 1, i1); i++) { s = V.add(s, pos[i]); k++; } return V.mul(s, 1 / k); };
-  const cyc = 24;
+// ================= 无穷剑匣：曼德盒（Tom Lowe 2010）——盒折叠 + 球折叠，镜头穿入无穷剑匣 =================
+// 每次迭代：分量超出 ±1 就向内折回（盒折叠）；|z|<r 时放大、r<|z|<1 时反演（球折叠）；再乘比例 s 加回原点 c。
+// s 取负值时，盒内长出层层叠叠的剑脊与剑格；镜头沿匣中甬道推进、转身、再拉出看全匣。
+reg('mandelbox', c => {
+  const { fx, P } = c;
+  const draw = fx.shaderWH('lx5_mbox', fx.GLSL + `uniform float SC,TT;uniform vec3 CP,CT;
+float de(vec3 p,out float trap){vec4 z=vec4(p,1.);vec4 cc=z;trap=1e9;
+  for(int i=0;i<11;i++){z.xyz=clamp(z.xyz,-1.,1.)*2.-z.xyz;float r2=dot(z.xyz,z.xyz);
+    if(r2<.25){z*=4.;}else if(r2<1.){z/=r2;}
+    z=vec4(SC*z.xyz+cc.xyz,abs(SC)*z.w+1.);trap=min(trap,abs(z.x*z.y)*.02+r2*.08);}
+  return (length(z.xyz)-abs(SC-1.))/abs(z.w)-pow(abs(SC),-11.);}
+void main(){vec2 uv=(gl_FragCoord.xy-.5*R)/R.y;
+  vec3 ro=CP,f=normalize(CT-CP),rt=normalize(cross(vec3(0,1,0),f)),up=cross(f,rt),rd=normalize(f*1.15+uv.x*rt+uv.y*up);
+  float t=0.,it=0.,tr=0.,glw=0.;float hit=0.;
+  for(int i=0;i<120;i++){float d=de(ro+rd*t,tr);glw+=exp(-d*40.)*.012;if(d<.0012*max(t,.2)){hit=1.;break;}t+=d*.9;it+=1.;if(t>24.)break;}
+  vec3 col=vec3(.012,.006,.03);
+  if(hit>.5){vec3 p=ro+rd*t;float e=.0015*max(t,.3),a,b2;
+    vec3 n=normalize(vec3(de(p+vec3(e,0,0),a)-de(p-vec3(e,0,0),a),de(p+vec3(0,e,0),a)-de(p-vec3(0,e,0),a),de(p+vec3(0,0,e),a)-de(p-vec3(0,0,e),a)));
+    de(p,tr);float dif=max(dot(n,normalize(vec3(.5,.8,-.3))),0.),dif2=max(dot(n,normalize(vec3(-.6,-.2,.5))),0.);
+    float ao=pow(1.-it/120.,2.);float rim=pow(1.-max(dot(n,-rd),0.),3.);
+    float k=clamp(sqrt(tr)*.9,0.,1.);vec3 base=mix(C2,C1,k);base=mix(base,ACC,smoothstep(.85,1.,k));
+    col=base*(.08+.8*dif)*ao+C1*.35*dif2*ao+INK*pow(max(dot(reflect(rd,n),normalize(vec3(.5,.8,-.3))),0.),30.)*.8+C2*rim*.6;
+    col=mix(col,vec3(.02,.01,.05),1.-exp(-t*.07));}
+  col+=mix(C1,C2,.5)*glw*.6;
+  // 剑光：沿视线方向的细亮条，随时间扫过
+  float sw=fract(TT*.11);float band=exp(-abs(uv.x+uv.y*.35-(sw*4.-2.))*30.)*.35*(hit>.5?1.:.3);col+=ACC*band;
+  gl_FragColor=vec4(col,1.);}`, { res: .6 });
+  // 镜头路径：远观全匣 → 推入正面甬道 → 匣中横移 → 拉出（周期 28 秒，首尾相接）
+  const key = [
+    { cp: [0, 3.2, -11.5], ct: [0, 0, 0] },
+    { cp: [1.2, 1.1, -7.0], ct: [0, 0, 0] },
+    { cp: [.5, .45, -4.7], ct: [.2, 0, -2.0] },
+    { cp: [-1.6, .35, -4.5], ct: [-2.6, .2, -1.2] },
+    { cp: [-3.4, 1.6, -7.5], ct: [0, 0, 0] },
+    { cp: [0, 3.2, -11.5], ct: [0, 0, 0] },
+  ];
+  const lerp3 = (a, b, u) => a.map((v, i) => v + (b[i] - v) * u), sm = x => x * x * (3 - 2 * x);
   return { step(t) {
-    let o = 0;
-    for (let i = 0; i < n - 1; i++) { const a = pos[i], b = pos[i + 1]; const hue = i / n; const cl = [c1[0] + (c2[0] - c1[0]) * hue, c1[1] + (c2[1] - c1[1]) * hue, c1[2] + (c2[2] - c1[2]) * hue];
-      for (let k = 0; k < KS; k++) { const u = k / KS; D.set([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u, 0, ...cl, .32], o); o += 8; } }
-    const ph = t % cyc, round = Math.floor(t / cyc) + 1;
-    const mv = sm((ph - 4) / 6), arrive = sm((ph - 12) / 5);
-    for (let i = 0; i < n; i++) { const j = 2 * i + 1, a = pos[i]; let p, al = 1;
-      if (j < n) { const b = pos[j]; const lift = Math.sin(Math.PI * mv) * .18; p = [a[0] + (b[0] - a[0]) * mv, a[1] + (b[1] - a[1]) * mv + lift, a[2] + (b[2] - a[2]) * mv]; }
-      else { const r = 1 + mv * 4; p = [a[0] * r, a[1] * r + mv * .8, a[2] * r]; al = 1 - mv * .9; }
-      D.set([...p, 0, ...wh, .7 * al], o); o += 8; }
-    for (let i = 0; i < n; i += 2) { const b = pos[i], from = [b[0] * 7, b[1] * 7 + 3, b[2] * 7], u = arrive; D.set([from[0] + (b[0] - from[0]) * u, from[1] + (b[1] - from[1]) * u, from[2] + (b[2] - from[2]) * u, 0, ...ac, mv > .98 ? 1.1 * u + .2 : 0], o); o += 8; }
-    // 戒环：一圈金色符环套住整座客栈
-    for (let i = 0; i < RING; i++) { const u = i / RING * TAU, w = (i % 7) / 7 - .5; let x = 1.75 * Math.cos(u), y = w * .12, z = 1.75 * Math.sin(u); const tl = .45, cy_ = Math.cos(tl), sy = Math.sin(tl); [y, z] = [y * cy_ - z * sy, y * sy + z * cy_]; const r = t * .15, cr = Math.cos(r), sr = Math.sin(r); [x, z] = [x * cr - z * sr, x * sr + z * cr];
-      D.set([x, y, z, 0, ...ac, (i % 50 < 4) ? 1.4 : .35], o); o += 8; }
-    // 镜头：沿回廊飞（平滑后的曲线）→ 拉出俯瞰
-    const idx = ((t * 7) % n), i0 = Math.floor(idx);
-    const B = [V.add(avg(i0 - 4, i0 + 4), [0, .07, 0]), avg(i0 + 8, i0 + 16)];
-    const A = [orbit(t, 3.1, 1.4, .13), [0, 0, 0]];
-    const u = ph < 14 ? 1 : ph < 16 ? 1 - (ph - 14) / 2 : ph < 22 ? 0 : (ph - 22) / 2;
-    const [e, g2] = blendCam(A, B, u); const cm = look(e, g2);
-    sky(c, t, cm, .2);
-    drawP(c.pd, c, t, c.dust, cm, { size: 2, noBlit: true });
-    drawP(pc, c, t, D, cm, { n: o / 8, size: 1.5 + 1.6 * (1 - u), far: 14, keep: true });
-    c.hud(ph < 4 ? `第 ${round} 轮 · ${n} 间房全满（可数无穷的一段）` : ph < 12 ? `n 号 → 2n 号 · 超出的住客继续去往无穷` : `奇数号空出 ${n / 2} 间，新客入住 · 第 ${round} 轮`);
+    const CY = 28, u = (t % CY) / CY * (key.length - 1), i0 = Math.floor(u), f = sm(u - i0), A = key[i0], B = key[Math.min(key.length - 1, i0 + 1)];
+    const ang = t * .05, rot = v => [v[0] * Math.cos(ang) - v[2] * Math.sin(ang), v[1], v[0] * Math.sin(ang) + v[2] * Math.cos(ang)];
+    const CP = rot(lerp3(A.cp, B.cp, f)), CT = rot(lerp3(A.ct, B.ct, f));
+    const SC = 2.9 + .12 * Math.sin(t * .07);
+    draw(c.g, c.W, c.H, t, P, { SC, TT: t, CP, CT });
+    c.hud(`盒折叠 + 球折叠 · 比例 s=${SC.toFixed(2)} · 迭代 11 重 · 镜距 ${Math.hypot(...CP).toFixed(2)}`);
   } };
 }, { full: true });
 
