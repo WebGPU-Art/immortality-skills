@@ -39,7 +39,11 @@ for i in ids:
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-f', 's16le', '-ar', '24000', '-ac', '1', '-i', tmp.name, '-af', f'atempo={TEMPO}', '-c:a', 'libmp3lame', '-b:a', '64k', out], check=True)
     os.remove(tmp.name)
     d = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', out], capture_output=True, text=True).stdout.strip())
-    man[i] = {'f': f'{i}.mp3', 'd': round(d, 3)}
+    # 文件名带内容哈希：CDN 会长期缓存同名文件，换了配音必须换文件名，否则线上会播旧配音
+    import hashlib
+    hn = f'{i}.{hashlib.md5(open(out, "rb").read()).hexdigest()[:8]}.mp3'
+    os.replace(out, os.path.join(out_dir, hn))
+    man[i] = {'f': hn, 'd': round(d, 3)}
 json.dump(man, open(os.path.join(root, 'data/audio.json'), 'w'), ensure_ascii=False, indent=0)
 tot = sum(v['d'] for v in man.values())
 print(f'{len(man)} 段，配音共 {tot/60:.1f} 分钟；加上每页前后各半秒与过渡，成片约 {(tot + len(man)*1.4)/60:.1f} 分钟')

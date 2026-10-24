@@ -1,462 +1,462 @@
 {
 "intro_lianqi": {
-"f": "intro_lianqi.mp3",
+"f": "intro_lianqi.28972c06.mp3",
 "d": 6.528
 },
 "s_chladni": {
-"f": "s_chladni.mp3",
+"f": "s_chladni.ee9da2fb.mp3",
 "d": 12.312
 },
 "s_pendulum": {
-"f": "s_pendulum.mp3",
+"f": "s_pendulum.6317d1b7.mp3",
 "d": 9.552
 },
 "s_resonance": {
-"f": "s_resonance.mp3",
+"f": "s_resonance.94b235da.mp3",
 "d": 9.528
 },
 "s_sr": {
-"f": "s_sr.mp3",
+"f": "s_sr.09455aa5.mp3",
 "d": 11.664
 },
 "s_cavitation": {
-"f": "s_cavitation.mp3",
+"f": "s_cavitation.94c5a959.mp3",
 "d": 10.608
 },
 "s_anc": {
-"f": "s_anc.mp3",
+"f": "s_anc.a7dbae8a.mp3",
 "d": 9.0
 },
 "s_karman": {
-"f": "s_karman.mp3",
+"f": "s_karman.f2d2957f.mp3",
 "d": 10.872
 },
 "s_polya": {
-"f": "s_polya.mp3",
+"f": "s_polya.b1549448.mp3",
 "d": 12.504
 },
 "s_lsys": {
-"f": "s_lsys.mp3",
+"f": "s_lsys.dab88790.mp3",
 "d": 9.384
 },
 "intro_zhuji": {
-"f": "intro_zhuji.mp3",
+"f": "intro_zhuji.c4bf708e.mp3",
 "d": 4.968
 },
 "s_lorenz": {
-"f": "s_lorenz.mp3",
+"f": "s_lorenz.8267611f.mp3",
 "d": 10.752
 },
 "s_dla": {
-"f": "s_dla.mp3",
+"f": "s_dla.eba00544.mp3",
 "d": 8.544
 },
 "s_horseshoe": {
-"f": "s_horseshoe.mp3",
+"f": "s_horseshoe.f7129775.mp3",
 "d": 9.696
 },
 "s_nucleation": {
-"f": "s_nucleation.mp3",
+"f": "s_nucleation.c5fca46b.mp3",
 "d": 9.168
 },
 "s_defib": {
-"f": "s_defib.mp3",
+"f": "s_defib.e2311afb.mp3",
 "d": 10.176
 },
 "s_burnship": {
-"f": "s_burnship.mp3",
+"f": "s_burnship.5a5c9946.mp3",
 "d": 8.808
 },
 "s_langton": {
-"f": "s_langton.mp3",
+"f": "s_langton.6764ac24.mp3",
 "d": 9.288
 },
 "s_meissner": {
-"f": "s_meissner.mp3",
+"f": "s_meissner.fe51e1ac.mp3",
 "d": 8.904
 },
 "s_rogue": {
-"f": "s_rogue.mp3",
+"f": "s_rogue.f6a1bf1d.mp3",
 "d": 10.416
 },
 "intro_jindan": {
-"f": "intro_jindan.mp3",
+"f": "intro_jindan.e0f02320.mp3",
 "d": 4.776
 },
 "s_logistic": {
-"f": "s_logistic.mp3",
+"f": "s_logistic.2e02fe35.mp3",
 "d": 10.896
 },
 "s_aizawa": {
-"f": "s_aizawa.mp3",
+"f": "s_aizawa.62983b14.mp3",
 "d": 5.952
 },
 "s_ising": {
-"f": "s_ising.mp3",
+"f": "s_ising.d5fb9133.mp3",
 "d": 8.976
 },
 "s_percol": {
-"f": "s_percol.mp3",
+"f": "s_percol.e64fe7f4.mp3",
 "d": 9.672
 },
 "s_fern": {
-"f": "s_fern.mp3",
+"f": "s_fern.fb3d6c54.mp3",
 "d": 11.64
 },
 "s_dragon": {
-"f": "s_dragon.mp3",
+"f": "s_dragon.d2d50f6c.mp3",
 "d": 10.296
 },
 "s_peano": {
-"f": "s_peano.mp3",
+"f": "s_peano.da55b6d3.mp3",
 "d": 8.64
 },
 "s_gabriel": {
-"f": "s_gabriel.mp3",
+"f": "s_gabriel.d007ef19.mp3",
 "d": 10.008
 },
 "s_juliawheel": {
-"f": "s_juliawheel.mp3",
+"f": "s_juliawheel.4d804274.mp3",
 "d": 8.784
 },
 "intro_yuanying": {
-"f": "intro_yuanying.mp3",
+"f": "intro_yuanying.97af5e4c.mp3",
 "d": 5.976
 },
 "s_levy": {
-"f": "s_levy.mp3",
+"f": "s_levy.02e85e63.mp3",
 "d": 9.072
 },
 "s_orbital": {
-"f": "s_orbital.mp3",
+"f": "s_orbital.780f9a9c.mp3",
 "d": 6.336
 },
 "s_lyap": {
-"f": "s_lyap.mp3",
+"f": "s_lyap.83d76333.mp3",
 "d": 9.096
 },
 "s_julia": {
-"f": "s_julia.mp3",
+"f": "s_julia.8c35a156.mp3",
 "d": 10.2
 },
 "s_koch": {
-"f": "s_koch.mp3",
+"f": "s_koch.b16102e8.mp3",
 "d": 10.296
 },
 "s_cantor": {
-"f": "s_cantor.mp3",
+"f": "s_cantor.9dafc274.mp3",
 "d": 9.36
 },
 "s_weier": {
-"f": "s_weier.mp3",
+"f": "s_weier.308abf3d.mp3",
 "d": 9.648
 },
 "s_lyapfrac": {
-"f": "s_lyapfrac.mp3",
+"f": "s_lyapfrac.90ceb2da.mp3",
 "d": 9.624
 },
 "s_tunnel": {
-"f": "s_tunnel.mp3",
+"f": "s_tunnel.5638eab4.mp3",
 "d": 9.216
 },
 "intro_huashen": {
-"f": "intro_huashen.mp3",
+"f": "intro_huashen.d1b8421c.mp3",
 "d": 4.776
 },
 "s_hairyball": {
-"f": "s_hairyball.mp3",
+"f": "s_hairyball.be07530f.mp3",
 "d": 9.288
 },
 "s_spiral": {
-"f": "s_spiral.mp3",
+"f": "s_spiral.1fed2e0b.mp3",
 "d": 8.784
 },
 "s_turing": {
-"f": "s_turing.mp3",
+"f": "s_turing.9c9d8906.mp3",
 "d": 7.92
 },
 "s_life": {
-"f": "s_life.mp3",
+"f": "s_life.706ee183.mp3",
 "d": 8.928
 },
 "s_penrose": {
-"f": "s_penrose.mp3",
+"f": "s_penrose.c5bdf96a.mp3",
 "d": 9.456
 },
 "s_flock": {
-"f": "s_flock.mp3",
+"f": "s_flock.c4f5131f.mp3",
 "d": 8.688
 },
 "s_kifs": {
-"f": "s_kifs.mp3",
+"f": "s_kifs.699a6300.mp3",
 "d": 9.648
 },
 "s_dissip": {
-"f": "s_dissip.mp3",
+"f": "s_dissip.f1a6ebba.mp3",
 "d": 9.288
 },
 "s_rt": {
-"f": "s_rt.mp3",
+"f": "s_rt.8431a03b.mp3",
 "d": 8.136
 },
 "s_warp": {
-"f": "s_warp.mp3",
+"f": "s_warp.f4d5f3f8.mp3",
 "d": 6.12
 },
 "intro_lianxu": {
-"f": "intro_lianxu.mp3",
+"f": "intro_lianxu.f11a2c22.mp3",
 "d": 4.272
 },
 "s_menger": {
-"f": "s_menger.mp3",
+"f": "s_menger.ca4f1fc1.mp3",
 "d": 9.48
 },
 "s_tesseract": {
-"f": "s_tesseract.mp3",
+"f": "s_tesseract.b08d555d.mp3",
 "d": 6.312
 },
 "s_hopf": {
-"f": "s_hopf.mp3",
+"f": "s_hopf.6587bbaa.mp3",
 "d": 6.984
 },
 "s_knot": {
-"f": "s_knot.mp3",
+"f": "s_knot.1035bafb.mp3",
 "d": 8.688
 },
 "s_topo": {
-"f": "s_topo.mp3",
+"f": "s_topo.7f018d14.mp3",
 "d": 8.664
 },
 "s_mandelbox": {
-"f": "s_mandelbox.mp3",
+"f": "s_mandelbox.8b67bf8f.mp3",
 "d": 9.864
 },
 "s_cloak": {
-"f": "s_cloak.mp3",
+"f": "s_cloak.24fe3626.mp3",
 "d": 9.504
 },
 "s_anderson": {
-"f": "s_anderson.mp3",
+"f": "s_anderson.e2d7ca1b.mp3",
 "d": 9.408
 },
 "intro_heti": {
-"f": "intro_heti.mp3",
+"f": "intro_heti.63049445.mp3",
 "d": 3.864
 },
 "s_kuramoto": {
-"f": "s_kuramoto.mp3",
+"f": "s_kuramoto.cd9ccbcd.mp3",
 "d": 10.536
 },
 "s_mirror": {
-"f": "s_mirror.mp3",
+"f": "s_mirror.aa66ac5a.mp3",
 "d": 8.328
 },
 "s_hypersync": {
-"f": "s_hypersync.mp3",
+"f": "s_hypersync.a318a6e1.mp3",
 "d": 10.464
 },
 "s_chaossync": {
-"f": "s_chaossync.mp3",
+"f": "s_chaossync.8b93e87e.mp3",
 "d": 9.072
 },
 "s_threebody": {
-"f": "s_threebody.mp3",
+"f": "s_threebody.532935ad.mp3",
 "d": 9.024
 },
 "s_tidal": {
-"f": "s_tidal.mp3",
+"f": "s_tidal.4c6035ca.mp3",
 "d": 8.64
 },
 "s_lens": {
-"f": "s_lens.mp3",
+"f": "s_lens.057953d4.mp3",
 "d": 9.072
 },
 "s_pendulum2": {
-"f": "s_pendulum2.mp3",
+"f": "s_pendulum2.6373c77c.mp3",
 "d": 9.984
 },
 "s_twist": {
-"f": "s_twist.mp3",
+"f": "s_twist.a97ecda1.mp3",
 "d": 9.144
 },
 "intro_dacheng": {
-"f": "intro_dacheng.mp3",
+"f": "intro_dacheng.2f039dd9.mp3",
 "d": 4.128
 },
 "s_ogy": {
-"f": "s_ogy.mp3",
+"f": "s_ogy.85c2d51c.mp3",
 "d": 9.432
 },
 "s_calabi": {
-"f": "s_calabi.mp3",
+"f": "s_calabi.31bca663.mp3",
 "d": 7.728
 },
 "s_cs": {
-"f": "s_cs.mp3",
+"f": "s_cs.c895f701.mp3",
 "d": 9.672
 },
 "s_ramsey": {
-"f": "s_ramsey.mp3",
+"f": "s_ramsey.df3a40a3.mp3",
 "d": 8.856
 },
 "s_rg": {
-"f": "s_rg.mp3",
+"f": "s_rg.4f389294.mp3",
 "d": 9.192
 },
 "s_lorenz96": {
-"f": "s_lorenz96.mp3",
+"f": "s_lorenz96.62ff7ba3.mp3",
 "d": 8.448
 },
 "s_spinglass": {
-"f": "s_spinglass.mp3",
+"f": "s_spinglass.34e71e3c.mp3",
 "d": 9.096
 },
 "s_apollo": {
-"f": "s_apollo.mp3",
+"f": "s_apollo.e4b67cc6.mp3",
 "d": 8.664
 },
 "s_trapdoor": {
-"f": "s_trapdoor.mp3",
+"f": "s_trapdoor.18b1a235.mp3",
 "d": 8.544
 },
 "s_clifford": {
-"f": "s_clifford.mp3",
+"f": "s_clifford.381182c4.mp3",
 "d": 10.176
 },
 "intro_dujie": {
-"f": "intro_dujie.mp3",
+"f": "intro_dujie.2f3a944a.mp3",
 "d": 4.848
 },
 "s_turbulence": {
-"f": "s_turbulence.mp3",
+"f": "s_turbulence.17252cd4.mp3",
 "d": 11.64
 },
 "s_sandpile": {
-"f": "s_sandpile.mp3",
+"f": "s_sandpile.51ebe145.mp3",
 "d": 8.832
 },
 "s_bulb": {
-"f": "s_bulb.mp3",
+"f": "s_bulb.e37df9c7.mp3",
 "d": 8.664
 },
 "s_r0": {
-"f": "s_r0.mp3",
+"f": "s_r0.4179e768.mp3",
 "d": 9.192
 },
 "s_byzantine": {
-"f": "s_byzantine.mp3",
+"f": "s_byzantine.8f004583.mp3",
 "d": 9.0
 },
 "s_apollo3d": {
-"f": "s_apollo3d.mp3",
+"f": "s_apollo3d.bb40eec0.mp3",
 "d": 8.064
 },
 "s_prion": {
-"f": "s_prion.mp3",
+"f": "s_prion.4738775b.mp3",
 "d": 10.104
 },
 "s_zeno": {
-"f": "s_zeno.mp3",
+"f": "s_zeno.99d95f8f.mp3",
 "d": 9.576
 },
 "s_heatdeath": {
-"f": "s_heatdeath.mp3",
+"f": "s_heatdeath.bdb01475.mp3",
 "d": 8.664
 },
 "intro_zhenxian": {
-"f": "intro_zhenxian.mp3",
+"f": "intro_zhenxian.1a99991a.mp3",
 "d": 5.4
 },
 "s_dilation": {
-"f": "s_dilation.mp3",
+"f": "s_dilation.1c8bd408.mp3",
 "d": 10.248
 },
 "s_catmap": {
-"f": "s_catmap.mp3",
+"f": "s_catmap.02d8755a.mp3",
 "d": 9.888
 },
 "s_trm": {
-"f": "s_trm.mp3",
+"f": "s_trm.53d751a5.mp3",
 "d": 9.36
 },
 "s_ecc": {
-"f": "s_ecc.mp3",
+"f": "s_ecc.4c39ac2c.mp3",
 "d": 8.256
 },
 "s_telomere": {
-"f": "s_telomere.mp3",
+"f": "s_telomere.d665a713.mp3",
 "d": 8.736
 },
 "s_anneal": {
-"f": "s_anneal.mp3",
+"f": "s_anneal.964fc4ac.mp3",
 "d": 7.56
 },
 "s_flame": {
-"f": "s_flame.mp3",
+"f": "s_flame.b7366432.mp3",
 "d": 8.832
 },
 "s_timecrystal": {
-"f": "s_timecrystal.mp3",
+"f": "s_timecrystal.47328c14.mp3",
 "d": 9.144
 },
 "intro_daozu": {
-"f": "intro_daozu.mp3",
+"f": "intro_daozu.bb26a699.mp3",
 "d": 4.848
 },
 "s_replicator": {
-"f": "s_replicator.mp3",
+"f": "s_replicator.d4727807.mp3",
 "d": 10.128
 },
 "s_newton": {
-"f": "s_newton.mp3",
+"f": "s_newton.a41ddd10.mp3",
 "d": 8.496
 },
 "s_mandel": {
-"f": "s_mandel.mp3",
+"f": "s_mandel.bffbd6f8.mp3",
 "d": 8.664
 },
 "s_holo": {
-"f": "s_holo.mp3",
+"f": "s_holo.47170c29.mp3",
 "d": 8.16
 },
 "s_teleport": {
-"f": "s_teleport.mp3",
+"f": "s_teleport.9609fc96.mp3",
 "d": 9.12
 },
 "s_nocloning": {
-"f": "s_nocloning.mp3",
+"f": "s_nocloning.0993f099.mp3",
 "d": 9.144
 },
 "s_kleinian": {
-"f": "s_kleinian.mp3",
+"f": "s_kleinian.a2479797.mp3",
 "d": 8.448
 },
 "intro_tiandao": {
-"f": "intro_tiandao.mp3",
+"f": "intro_tiandao.2224e935.mp3",
 "d": 4.872
 },
 "s_halting": {
-"f": "s_halting.mp3",
+"f": "s_halting.55eef8e9.mp3",
 "d": 8.136
 },
 "s_godel": {
-"f": "s_godel.mp3",
+"f": "s_godel.6321b986.mp3",
 "d": 9.36
 },
 "s_kam": {
-"f": "s_kam.mp3",
+"f": "s_kam.818f1bea.mp3",
 "d": 8.856
 },
 "s_vacuum": {
-"f": "s_vacuum.mp3",
+"f": "s_vacuum.fb00ca8b.mp3",
 "d": 9.096
 },
 "s_hawking": {
-"f": "s_hawking.mp3",
+"f": "s_hawking.180f805f.mp3",
 "d": 9.288
 },
 "s_banach": {
-"f": "s_banach.mp3",
+"f": "s_banach.702057d9.mp3",
 "d": 8.472
 }
 }
