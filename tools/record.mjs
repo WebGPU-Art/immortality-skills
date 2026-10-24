@@ -13,6 +13,6 @@ const CANDS = { darwin: ['/Applications/Google Chrome.app/Contents/MacOS/Google 
 const chrome = process.env.CHROME || CANDS.find(existsSync);
 setTimeout(() => {
   if (!chrome) { console.log('没找到 Chrome，请手动在浏览器打开：', url); return; }
-  const args = [`--user-data-dir=${join(root, '.chrome-record')}`, '--autoplay-policy=no-user-gesture-required', '--no-first-run', '--disable-infobars', '--hide-scrollbars', process.env.WINDOW ? `--window-size=${process.env.WINDOW}` : '--start-fullscreen', `--app=${url}`];
+  const args = [`--user-data-dir=${join(root, '.chrome-record')}`, '--autoplay-policy=no-user-gesture-required', '--auto-accept-this-tab-capture', '--no-first-run', '--disable-infobars', '--hide-scrollbars', process.env.WINDOW ? `--window-size=${process.env.WINDOW}` : '--start-fullscreen', `--app=${url}`];
   console.log('打开：', url); const c = spawn(chrome, args, { stdio: 'ignore' }); c.on('exit', () => { srv.kill(); process.exit(0); });
 }, 400);

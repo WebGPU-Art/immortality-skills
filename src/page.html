@@ -164,6 +164,11 @@ footer{padding-block:40px 120px;color:var(--dim);font-size:13px}
 #th-load em{display:block;width:5em;height:.03em;background:rgba(255,255,255,.12)}
 #th-load em i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
 #th-load.ready span{color:var(--gold);opacity:1}
+#th-start{display:flex;gap:.3em;margin:.25em 0 0}
+#th-start[hidden]{display:none}
+#th-start button{font:inherit;font-size:.22em;padding:.4em 1em;background:transparent;color:#e9dfcb;border:1px solid #6a5a44;cursor:pointer}
+#th-start #th-rec{background:var(--seal);border-color:var(--seal);color:#f6ecd8}
+#theater.rec #th-start button{cursor:pointer}
 @keyframes breathe{50%{opacity:.6;filter:blur(.02em)}}
 </style>
 <div class="wrap">
@@ -193,7 +198,7 @@ footer{padding-block:40px 120px;color:var(--dim);font-size:13px}
     <div id="th-prog"></div>
     <div id="th-sub" aria-live="off"></div>
     <div id="th-veil"></div>
-    <div id="th-load" hidden><b>混沌法典</b><span>法典开卷</span><em><i></i></em></div>
+    <div id="th-load" hidden><b>混沌法典</b><span>法典开卷</span><em><i></i></em><p id="th-start" hidden><button type="button" id="th-play">只播放（自己录屏）</button><button type="button" id="th-rec">录成视频文件（含配音）</button></p></div>
   </div>
   <div id="th-ctl"><span id="th-count"></span><button type="button" id="th-prev" aria-label="上一式">◀</button><button type="button" id="th-auto" aria-pressed="true">自动</button><button type="button" id="th-restart">重播</button><button type="button" id="th-next" aria-label="下一式">▶</button><button type="button" id="th-close">关闭</button></div>
 </div>
