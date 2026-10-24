@@ -8,7 +8,7 @@
 跑完会删掉 audio 里与当前稿子不对应的旧配音。可中断后重跑，已生成的会跳过。"""
 import os, sys, json, base64, hashlib, glob, time, re, urllib.request
 VOICE = 'Algenib'
-MODEL = 'gemini-2.5-flash-preview-tts'
+MODEL = 'gemini-3.1-flash-tts-preview'   # 可用 --model 覆盖
 # 第一条是上一版验证可用的风格提示；接口返回 finishReason=OTHER（不出声）时依次换更简单的提示再试
 STYLES = ['用低沉、浑厚、略带沧桑的男声朗读，正常说话的语速，干脆利落，句间只做短暂停顿；像一位老修士平静地念出法典条目，不要拖腔，不要播音腔。只朗读下面的中文：',
           '用低沉浑厚的男声，以正常语速朗读下面这段中文：',
@@ -73,6 +73,7 @@ if __name__ == '__main__':
     if not a: sys.exit(__doc__)
     env = load_env(a[0]); key = env['GEMINI_API_KEY']; url = endpoint(env)
     voice = a[a.index('--voice') + 1] if '--voice' in a else VOICE
+    if '--model' in a: MODEL = a[a.index('--model') + 1]; url = endpoint(env)
     S = json.load(open('script.json'))
     if '--diag' in a:   # 诊断：分别试旧稿（上次能出声）、新稿短句、新稿长句、换声音，看哪种不出声
         import subprocess
@@ -94,7 +95,7 @@ if __name__ == '__main__':
         for v in SAMPLE_VOICES:
             p = f'samples/{v}.pcm'; tts(key, url, v, text, p); wav(p, f'samples/{v}.wav'); os.remove(p); print('试听：', f'samples/{v}.wav')
         sys.exit(0)
-    os.makedirs('audio', exist_ok=True); print('声音：', voice, ' 接口：', url.split('/models/')[0])
+    os.makedirs('audio', exist_ok=True); print('声音：', voice, ' 模型：', MODEL, ' 接口：', url.split('/models/')[0])
     n = sum(len(s['beats']) for s in S); done = 0
     for s in S:
         for i, t in enumerate(s['beats']):
