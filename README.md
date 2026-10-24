@@ -61,6 +61,19 @@ node tools/record.mjs              # 从头开始；node tools/record.mjs s_hopf
 - 收尾页之后留 6 秒落幕画面再淡出。Esc 退出，← → 跳页。也可以直接在网页上点「● 录制模式」，或在地址后加 `#record` / `#record-s_hopf`。
 - 旁白稿在 `narration/`，配音脚本在 `tts/`（Gemini TTS，低沉男声）；生成的音频转成 `assets/audio/*.mp3`，时长写入 `data/audio.json`。没有配音时按语速估计每页时长。
 
+### 分段录制（推荐）
+
+一页录到底内存会越积越多，录到一半可能崩溃。分段录制每一境开一个新页面单独录一个文件，最后用 ffmpeg 合并：
+
+```bash
+npm install                        # 需要 playwright-core
+node scripts/build.mjs
+node tools/record-segments.mjs     # 输出 recordings/00_炼气.mp4 … 11_天道.mp4，结束时打印合并命令
+node tools/record-segments.mjs 5   # 某段失败时从第 5 段续录
+```
+
+脚本会用本机 Chrome 弹出一个窗口自动播放并录制（画面 + 配音），录制期间不要切走或最小化窗口。
+
 ## 部署
 
 `.github/workflows/upload.yaml`：推送到 `main` 时构建 `dist/`，上传到腾讯云 COS（`ap-shanghai`，路径 `cos-sh.tiye.me/<仓库名>/`），并 rsync 到服务器（配音文件不同步到服务器，页面直接从 COS 加载配音）；PR 只构建并保留 3 天的产物。需要在仓库 Secrets 中配置：

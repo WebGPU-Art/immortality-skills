@@ -190,6 +190,9 @@ const Recorder = (() => {
   const narr = id => (NARR[id] || '');
   const estDur = id => Math.max(3, narr(id).length / 3.6);  // 没有配音时按语速估计
   const audioOf = id => AUDIO[id] ? { src: AUDIO_BASE + AUDIO[id].f, dur: AUDIO[id].d } : null;
+  // 分段录制：第 0 段 = 开场 + 炼气，之后每境一段，最后一段含收尾；每段在一次新开的页面里录，避免内存越积越多
+  const SEGS = REALM_ORDER.map((rk, i) => { const a0 = i === 0 ? 0 : PAGES.findIndex(p => p.id === 'intro_' + rk), nx = REALM_ORDER[i + 1]; return [a0, nx ? PAGES.findIndex(p => p.id === 'intro_' + nx) : PAGES.length]; });
+  let segEnd = PAGES.length, segMode = false;
   let on = false, pi = 0, inst = null, tt = 0, phase = 'idle', phaseT = 0, au = null, dur = 0, enterAt = 0, cues = [], nextAu = null, endHold = 0;
 
   function splitCues(text) {
@@ -245,8 +248,8 @@ const Recorder = (() => {
         if ((au && au.ended) || (!au && phaseT >= dur)) { phase = 'post'; phaseT = 0; sub.classList.remove('on'); }
       } else if (phase === 'post') {
         const textDone = (performance.now() - enterAt) / 1000 >= MIN_TEXT;
-        if (phaseT >= POST && textDone) { if (pi + 1 < PAGES.length) go(pi + 1); else { phase = 'end'; phaseT = 0; } }
-      } else if (phase === 'end' && phaseT >= LEAD_OUT && !endHold) { endHold = 1; veil.classList.add('on', 'slow'); }
+        if (phaseT >= POST && textDone) { if (pi + 1 < segEnd) go(pi + 1); else { phase = 'end'; phaseT = 0; } }
+      } else if (phase === 'end' && segEnd === PAGES.length && phaseT >= LEAD_OUT && !endHold) { endHold = 1; veil.classList.add('on', 'slow'); }
     }
     requestAnimationFrame(tick);
   }
@@ -254,8 +257,8 @@ const Recorder = (() => {
   // 开头：加载与预热（逐个挂载一帧，让着色器提前编译），这一段方便剪掉
   async function warm() {
     const tmp = document.createElement('canvas'); tmp.width = 480; tmp.height = 270; const bar = $('#th-load i'), txt = $('#th-load span');
-    for (let i = 0; i < PAGES.length; i++) {
-      const pg = PAGES[i]; txt.textContent = `法典开卷 · 预热第 ${i + 1} / ${PAGES.length} 页`; bar.style.width = ((i + 1) / PAGES.length * 100) + '%';
+    for (let i = startAt; i < segEnd; i++) {
+      const pg = PAGES[i], n = segEnd - startAt, k = i - startAt + 1; txt.textContent = `法典开卷 · 预热第 ${k} / ${n} 页`; bar.style.width = (k / n * 100) + '%';
       try { const m = pg.kind === 'spell' ? mount(tmp, pg.s.k, pg.realm, { theater: true }) : mountBanner(tmp, pg.realm); m.frame(.05); m.frame(.1); } catch (e) { console.warn(pg.id, e); }
       await new Promise(r => setTimeout(r, 0));
     }
@@ -269,7 +272,7 @@ const Recorder = (() => {
   }
   function size() { const vw = innerWidth, vh = innerHeight, ar = 16 / 9; let w = vw, h = vw / ar; if (h > vh) { h = vh; w = vh * ar; } box.style.width = w + 'px'; box.style.height = h + 'px'; box.style.fontSize = (h / 1080 * 100) + 'px'; const pr = Math.min(window.devicePixelRatio || 1, 2), W = Math.min(1920, Math.round(w * pr)); if (cv.width !== W) { cv.width = W; cv.height = Math.round(W * 9 / 16); } }
   let startAt = 0;
-  const begin = () => { load.hidden = true; ttl.innerHTML = ''; tx.innerHTML = ''; setTimeout(() => go(startAt), 1500); };
+  const begin = () => { load.hidden = true; ttl.innerHTML = ''; tx.innerHTML = ''; setTimeout(() => go(startAt), segMode && startAt > 0 ? 200 : 1500); };
   // 方式一：只播放（自己用录屏软件录）
   $('#th-play').addEventListener('click', e => { e.stopPropagation(); begin(); });
   // 方式二：网页自己录成视频文件（画面 + 配音），边录边写盘
@@ -280,7 +283,9 @@ const Recorder = (() => {
       const mime = ['video/mp4;codecs=avc1.640033,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m));
       if (!mime) throw new Error('这个浏览器不支持网页录制，请用最新版 Chrome');
       recExt = mime.startsWith('video/mp4') ? 'mp4' : 'webm';
-      if (window.showSaveFilePicker) {
+      const toNode = typeof window.__recChunk === 'function';   // 由 tools/record-segments.mjs 驱动时，数据直接交给本机脚本写盘
+      if (toNode) await window.__recMime(mime);
+      else if (window.showSaveFilePicker) {
         const fh = await showSaveFilePicker({ suggestedName: `混沌法典.${recExt}`, types: [{ description: '视频', accept: { [mime.split(';')[0]]: ['.' + recExt] } }] });
         writer = await fh.createWritable();
       }
@@ -288,9 +293,11 @@ const Recorder = (() => {
       const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 60, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: { suppressLocalAudioPlayback: false }, preferCurrentTab: true, selfBrowserSurface: 'include', surfaceSwitching: 'exclude', systemAudio: 'include' });
       if (!stream.getAudioTracks().length) msg.textContent = '注意：没有拿到标签页音频，录出的视频会没有声音';
       rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 24e6, audioBitsPerSecond: 192e3 });
-      rec.ondataavailable = ev => { if (!ev.data.size) return; if (writer) pend = pend.then(() => writer.write(ev.data)); else chunks.push(ev.data); };
+      const b64 = async blob => { const u = new Uint8Array(await blob.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+      rec.ondataavailable = ev => { if (!ev.data.size) return; if (toNode) pend = pend.then(async () => window.__recChunk(await b64(ev.data))); else if (writer) pend = pend.then(() => writer.write(ev.data)); else chunks.push(ev.data); };
       rec.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
+        if (toNode) { await pend; await window.__recDone(); return; }
         if (writer) { await pend; await writer.close(); }
         else { const url = URL.createObjectURL(new Blob(chunks, { type: mime })); const a2 = document.createElement('a'); a2.href = url; a2.download = `混沌法典.${recExt}`; document.body.append(a2); a2.click(); }
         document.title = '录制完成';
@@ -299,10 +306,11 @@ const Recorder = (() => {
     } catch (err) { msg.textContent = '录制没有开始：' + (err && err.message || err); }
   });
   // 落幕之后自动停止录制
-  setInterval(() => { if (rec && rec.state === 'recording' && phase === 'end' && phaseT >= LEAD_OUT + 3) rec.stop(); }, 500);
+  setInterval(() => { if (rec && rec.state === 'recording' && phase === 'end' && phaseT >= (segEnd === PAGES.length ? LEAD_OUT + 3 : .3)) rec.stop(); }, 100);
   addEventListener('keydown', e => { if (!on) return; if (e.key === 'Escape') { on = false; Theater.on = false; el.classList.remove('rec'); el.hidden = true; inst = null; if (au) au.pause(); document.body.style.overflow = ''; } else if (e.key === 'ArrowRight' && phase !== 'veil') { if (au) au.pause(); go(Math.min(PAGES.length - 1, pi + 1)); } else if (e.key === 'ArrowLeft' && phase !== 'veil') { if (au) au.pause(); go(Math.max(0, pi - 1)); } });
   $('#recmode').addEventListener('click', enter);
   // #record 从头开始；#record-s_hopf 或 #record-intro_lianxu 从指定页开始（便于分段补录）
-  if (location.hash.startsWith('#record')) { const id = location.hash.slice(8); const i = PAGES.findIndex(p => p.id === id); startAt = i > 0 ? i : 0; setTimeout(enter, 300); }
-  return { enter, PAGES };
+  if (location.hash.startsWith('#recseg-')) { const n = +location.hash.slice(8); [startAt, segEnd] = SEGS[n] || SEGS[0]; segMode = true; setTimeout(enter, 300); }
+  else if (location.hash.startsWith('#record')) { const id = location.hash.slice(8); const i = PAGES.findIndex(p => p.id === id); startAt = i > 0 ? i : 0; setTimeout(enter, 300); }
+  return { enter, PAGES, SEGS };
 })();
