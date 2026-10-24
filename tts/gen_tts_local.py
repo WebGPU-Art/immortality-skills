@@ -74,6 +74,21 @@ if __name__ == '__main__':
     env = load_env(a[0]); key = env['GEMINI_API_KEY']; url = endpoint(env)
     voice = a[a.index('--voice') + 1] if '--voice' in a else VOICE
     S = json.load(open('script.json'))
+    if '--diag' in a:   # 诊断：分别试旧稿（上次能出声）、新稿短句、新稿长句、换声音，看哪种不出声
+        import subprocess
+        tests = [('旧稿开篇', '第一境，炼气。引气入体，算力每息千次；一丝之差，便能放大成另一种命运。', voice),
+                 ('新稿开篇', S[0]['beats'][0], voice), ('新稿一式', S[1]['beats'][0], voice),
+                 ('新稿开篇·换声 Charon', S[0]['beats'][0], 'Charon'), ('纯文本', '今天天气很好，我们去山上走一走。', voice)]
+        for name, text, v in tests:
+            for st in STYLES[:2]:
+                body = {"contents": [{"parts": [{"text": st + "\n" + text}]}], "generationConfig": {"responseModalities": ["AUDIO"], "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": v}}}}}
+                req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": key})
+                try:
+                    with urllib.request.urlopen(req, timeout=120) as r: d = json.load(r)
+                    c = (d.get('candidates') or [{}])[0]; ok = any('inlineData' in p for p in (c.get('content') or {}).get('parts') or [])
+                    print(f'{name:<16} 提示{STYLES.index(st)+1}：', '有声' if ok else f"无声 finishReason={c.get('finishReason')}", d.get('modelVersion', ''))
+                except Exception as e: print(f'{name:<16} 提示{STYLES.index(st)+1}：出错', type(e).__name__, str(e)[:100])
+        sys.exit(0)
     if '--sample' in a:
         os.makedirs('samples', exist_ok=True); text = S[0]['beats'][0].split('。')[0] + '。' + S[0]['beats'][0].split('。')[1] + '。'
         for v in SAMPLE_VOICES:
