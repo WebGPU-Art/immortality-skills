@@ -9,8 +9,11 @@
 import os, sys, json, base64, hashlib, glob, time, re, urllib.request
 VOICE = 'Algenib'
 MODEL = 'gemini-2.5-flash-preview-tts'
-STYLE = ('用低沉、浑厚、略带沧桑的男声朗读，正常说话的语速，字字清楚，句间只做短暂停顿；'
-         '像古装戏里的旁白念台词，不要拖腔，不要播音腔。只逐字朗读下面的中文：')
+# 第一条是上一版验证可用的风格提示；接口返回 finishReason=OTHER（不出声）时依次换更简单的提示再试
+STYLES = ['用低沉、浑厚、略带沧桑的男声朗读，正常说话的语速，干脆利落，句间只做短暂停顿；像一位老修士平静地念出法典条目，不要拖腔，不要播音腔。只朗读下面的中文：',
+          '用低沉浑厚的男声，以正常语速朗读下面这段中文：',
+          '朗读：']
+STYLE = STYLES[0]
 VERIFY_MODEL = 'gemini-2.5-flash'   # 用来把配音转写回文字、核对是否逐字读对
 SAMPLE_VOICES = ['Algenib', 'Gacrux', 'Charon', 'Orus', 'Alnilam']
 def load_env(p):
@@ -26,19 +29,20 @@ def endpoint(env):
     if not base.endswith('/v1beta'): base += '/v1beta'
     return f"{base}/models/{MODEL}:generateContent"
 def tts(key, url, voice, text, out):
-    body = {"contents": [{"parts": [{"text": STYLE + "\n" + text}]}],
-            "generationConfig": {"responseModalities": ["AUDIO"], "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}}}}
-    req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": key})
-    for k in range(8):
+    for k in range(9):
+        style = STYLES[min(k // 3, len(STYLES) - 1)]   # 每种提示试三次，不出声就换更简单的提示
+        body = {"contents": [{"parts": [{"text": style + "\n" + text}]}],
+                "generationConfig": {"responseModalities": ["AUDIO"], "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}}}}
+        req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": key})
         try:
             with urllib.request.urlopen(req, timeout=240) as r: d = json.load(r)
             cand = (d.get('candidates') or [{}])[0]
             parts = (cand.get('content') or {}).get('parts') or []
             audio = next((p['inlineData']['data'] for p in parts if 'inlineData' in p), None)
-            if not audio: raise RuntimeError(f"没有返回音频 finishReason={cand.get('finishReason')} {json.dumps(d.get('promptFeedback', {}), ensure_ascii=False)[:120]}")
+            if not audio: raise RuntimeError(f"没有返回音频 finishReason={cand.get('finishReason')}")
             open(out, 'wb').write(base64.b64decode(audio)); return
         except Exception as e:
-            print('  重试', k + 1, type(e).__name__, str(e)[:80]); time.sleep(min(60, 8 * (k + 1)))
+            print('  重试', k + 1, type(e).__name__, str(e)[:80]); time.sleep(min(30, 4 * (k + 1)))
     sys.exit('多次失败，稍后重跑即可（已完成的会跳过）')
 def wav_bytes(pcm):
     import io, wave
