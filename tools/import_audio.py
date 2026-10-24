@@ -2,14 +2,15 @@
 用法：python3 tools/import_audio.py [pcm 目录，默认 tts/audio]
 需要 ffmpeg / ffprobe 与 numpy。处理：首尾静音裁到约 0.1 秒（页面上的「停半秒」才准）；
 句间超过 MAX_PAUSE 的长停顿压到 MAX_PAUSE；整体加速 TEMPO（保持音高）。"""
-MAX_PAUSE = 0.6
-TEMPO = 1.1
+MAX_PAUSE = 0.35
+TEMPO = 1.2
 import os, sys, json, glob, subprocess, re, tempfile
 import numpy as np
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 src = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, 'tts/audio')
 ids = [s['id'] for s in json.load(open(os.path.join(root, 'tts/script.json')))]
 out_dir = os.path.join(root, 'assets/audio'); os.makedirs(out_dir, exist_ok=True)
+for f in glob.glob(os.path.join(out_dir, '*.mp3')): os.remove(f)  # 清掉旧配音
 man = {}; missing = []
 for i in ids:
     fs = sorted(glob.glob(os.path.join(src, f'{i}_*.pcm')), key=os.path.getmtime)

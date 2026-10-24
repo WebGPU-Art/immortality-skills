@@ -1,6 +1,6 @@
 """为《混沌法典 · 全卷》生成配音（只用 Python 标准库，在你自己的电脑上运行）。
 用法（在 tts 文件夹里）：
-    python3 gen_tts_local.py /path/to/你的.env            # 生成全部 117 段
+    python3 gen_tts_local.py /path/to/你的.env            # 生成全部 115 段
     python3 gen_tts_local.py /path/to/你的.env --sample   # 只用开场第一句试听几种低沉男声，输出到 ./samples/
     python3 gen_tts_local.py /path/to/你的.env --voice Charon   # 换声音（默认 Algenib）
 .env 里需要 GEMINI_API_KEY=...（可选 GEMINI_BASE_URL=...）。密钥只在运行时读取，不会打印。
@@ -8,8 +8,8 @@
 import os, sys, json, base64, hashlib, glob, time, re, urllib.request
 VOICE = 'Algenib'
 MODEL = 'gemini-2.5-flash-preview-tts'
-STYLE = ('用低沉、浑厚、略带沙哑与沧桑的老年男声朗读，语速缓慢从容，像一位活了上万年的修士在山中向后辈讲述往事；'
-         '句读处自然停顿，不要激动，不要播音腔。只朗读下面的中文：')
+STYLE = ('用低沉、浑厚、略带沧桑的男声朗读，正常说话的语速，干脆利落，句间只做短暂停顿；'
+         '像一位老修士平静地念出法典条目，不要拖腔，不要播音腔。只朗读下面的中文：')
 SAMPLE_VOICES = ['Algenib', 'Gacrux', 'Charon', 'Orus', 'Alnilam']
 def load_env(p):
     env = {}
