@@ -4,7 +4,8 @@
     python3 gen_tts_local.py /path/to/你的.env --sample   # 只用开场第一句试听几种低沉男声，输出到 ./samples/
     python3 gen_tts_local.py /path/to/你的.env --voice Charon   # 换声音（默认 Algenib）
 .env 里需要 GEMINI_API_KEY=...（可选 GEMINI_BASE_URL=...）。密钥只在运行时读取，不会打印。
-输出：./audio/<段名>_<哈希>.pcm（24 kHz 单声道 16 位）。可中断后重跑，已生成的会跳过。"""
+输出：./audio/<段名>_<哈希>.pcm（24 kHz 单声道 16 位），就放在原来的 audio 文件夹里；
+跑完会删掉 audio 里与当前稿子不对应的旧配音。可中断后重跑，已生成的会跳过。"""
 import os, sys, json, base64, hashlib, glob, time, re, urllib.request
 VOICE = 'Algenib'
 MODEL = 'gemini-2.5-flash-preview-tts'
@@ -57,4 +58,7 @@ if __name__ == '__main__':
             if os.path.exists(out): continue
             tts(key, url, voice, t, out + '.tmp'); os.rename(out + '.tmp', out)
             print(f'[{done}/{n}] {s["id"]}  {os.path.getsize(out)/48000:.1f}s', flush=True)
-    print('全部完成，共', n, '段')
+    keep = {f"{s['id']}_{hashlib.md5((voice + '|' + s['beats'][0]).encode()).hexdigest()[:10]}.pcm" for s in S}
+    old = [f for f in os.listdir('audio') if f.endswith('.pcm') and f not in keep]
+    for f in old: os.remove(os.path.join('audio', f))
+    print('全部完成，共', n, '段；已删除旧配音', len(old), '个')
