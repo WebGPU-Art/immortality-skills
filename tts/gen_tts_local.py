@@ -62,9 +62,17 @@ def transcribe(key, base, pcm):
             print('  转写重试', k + 1, type(e).__name__, str(e)[:80]); time.sleep(6 * (k + 1))
     return ''
 def similar(a, b):
+    # 转写常把古文写成同音字（「砂聚」听成「杀锯」），同音替换不算读错；只把漏读、多读的字算进去
     import difflib
-    keep = lambda s: re.sub(r'[^\u4e00-\u9fff]', '', s)
-    return difflib.SequenceMatcher(None, keep(a), keep(b)).ratio()
+    keep = lambda s: re.sub(r'[^\u4e00-\u9fff0-9]', '', s.split('The transcription')[0])
+    x, y = keep(a), keep(b)
+    if not x: return 1.0
+    miss = 0
+    for op, i1, i2, j1, j2 in difflib.SequenceMatcher(None, x, y).get_opcodes():
+        if op == 'delete': miss += i2 - i1
+        elif op == 'insert': miss += j2 - j1
+        elif op == 'replace': miss += abs((i2 - i1) - (j2 - j1))
+    return max(0.0, 1 - miss / len(x))
 def wav(pcm, out):
     import wave
     with wave.open(out, 'wb') as w: w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(open(pcm, 'rb').read())
